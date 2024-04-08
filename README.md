@@ -1,4 +1,4 @@
-# Data Economy Hackathon
+# Scaling Web3 Hackathon
 IPFS Huggingface Bridge
 
 for transformers.js visit:
