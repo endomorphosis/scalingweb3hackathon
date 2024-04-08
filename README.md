@@ -1,4 +1,6 @@
 # Scaling Web3 Hackathon
+https://www.encode.club/scaling-web3-hackathon
+
 IPFS Huggingface Bridge
 
 for transformers.js visit:
