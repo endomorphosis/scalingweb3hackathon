@@ -624,11 +624,11 @@ class s3_kit:
 		return results
 
 
-#
-#if __name__ == '__main__':
-#	test_this = s3_kit(None)
-#	test_this.test2()
-#	test_this.test3()
-#
-#	pass
+
+if __name__ == '__main__':
+	test_this = s3_kit(None)
+	test_this.test2()
+	test_this.test3()
+
+	pass
 	

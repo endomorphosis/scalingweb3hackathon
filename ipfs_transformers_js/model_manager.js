@@ -1,28 +1,22 @@
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import util from 'util';
-import { promisify } from 'util';
-import { exec } from 'child_process';
-//from './s3_kit.js' import S3Kit;
-//import AWS from 'aws-sdk';
-//import { S3 } from 'aws-sdk';
-//import ipfsClient from 'ipfs-http-client';
-import * as TestFio from './test_fio.js';
-import * as S3Kit from './s3_kit.js';
-import * as IpfsKit from './ipfs_kit_lib/ipfs_kit.js';
-import fsExtra from 'fs-extra';
-import crypto from 'crypto';
-import rimraf from 'rimraf';
-import _ from 'lodash';
-
-//const s3 = new AWS.S3();
-//const ipfs = ipfsClient('http://localhost:5001');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3();
+const ipfsClient = require('ipfs-http-client');
+const ipfs = ipfsClient('http://localhost:5001');
+const fs = require('fs');
+const crypto = require('crypto');
+const path = require('path');
+const util = require('util');
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 const stat = util.promisify(fs.stat);
 const moveFile = util.promisify(fs.rename);
-const rimrafAsync = util.promisify(rimraf);
+const rimraf = util.promisify(require('rimraf'));
+const _ = require('lodash');
 
 class ModelManager {
     constructor(resources = null, meta = null) {
@@ -79,10 +73,10 @@ class ModelManager {
 
         let homeDir = os.homedir();
         let homeDirFiles = fs.readdirSync(homeDir);
-        this.testFio = TestFio
-        this.s3Kit = S3Kit;
-        this.ipfsKit = IpfsKit;
-        this.installIpfs = InstallIpfs;
+        this.testFio = new TestFio(null);
+        this.s3Kit = new S3Kit(resources, meta);
+        this.ipfsKit = new IpfsKit(resources, meta);
+        this.installIpfs = new InstallIpfs(resources, meta);
         let ipfsPath = this.ipfsPath;
         if (!fs.existsSync(this.ipfsPath)) {
             fs.mkdirSync(this.ipfsPath, { recursive: true });

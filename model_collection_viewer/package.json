@@ -14,5 +14,8 @@
 		"postcss": "^8.4.30",
 		"postcss-import": "^15.1.0",
 		"postcss-nested": "^6.0.1"
+	},
+	"dependencies": {
+		"aws-sdk": "^2.1595.0"
 	}
 }
