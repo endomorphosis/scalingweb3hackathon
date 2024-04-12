@@ -1,6 +1,6 @@
-const { execSync } = require('child_process');
+import { execSync } from 'child_process';
 
-class ipget {
+export class ipget {
     constructor(resources, meta = null) {
         if (meta !== null) {
             if ('config' in meta) {

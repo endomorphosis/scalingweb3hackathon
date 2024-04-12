@@ -1,6 +1,6 @@
-const { execSync } = require('child_process');
+import { execSync } from 'child_process';
 
-class TestFio {
+export class TestFio {
     constructor(resources, meta = null) {
         // constructor body
     }
@@ -131,7 +131,7 @@ class TestFio {
 
 }
 
-if (require.main === module) {
+function main(){
     const thisTest = new TestFio(null);
     const results = thisTest.test("/tmp/");
     console.log(results);

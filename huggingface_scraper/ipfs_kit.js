@@ -1,26 +1,19 @@
-const path = require('path');
-const installIpfs = require('./ipfs_kit_lib/install_ipfs');
-const Ipfs = require('./ipfs_kit_lib/ipfs');
-const IpfsClusterCtl = require('./ipfs_kit_lib/ipfs_cluster_ctl');
-const IpfsClusterService = require('./ipfs_kit_lib/ipfs_cluster_service');
-const IpfsClusterFollow = require('./ipfs_kit_lib/ipfs_cluster_follow');
-const Ipget = require('./ipfs_kit_lib/ipget');
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
-const readFile = util.promisify(fs.readFile);
-const mkdir = util.promisify(fs.mkdir);
-
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
-const fs = require('fs').promises;
-const os = require('os');
-const path = require('path');
+import path from 'path';
+import * as install_ipfs from './ipfs_kit_lib/install_ipfs.js';
+import * as ipfs from './ipfs_kit_lib/ipfs.js';
+import * as IpfsClusterCtl from './ipfs_kit_lib/ipfs_cluster_ctl.js';
+import * as IpfsClusterService from './ipfs_kit_lib/ipfs_cluster_service.js';
+import * as IpfsClusterFollow from './ipfs_kit_lib/ipfs_cluster_follow.js';
+import * as ipget from './ipfs_kit_lib/ipget.js';
+import fs from 'fs';
+import util from 'util';
+import { promisify } from 'util';
+import { promises as fsPromises } from 'fs';
+import os from 'os';
+import { exec } from 'child_process';
 
 
-
-
-class IpfsKit {
+export class IpfsKit {
     constructor(resources, meta = null) {
         this.role = null;
         this.ipfsGetConfig = this.ipfsGetConfig;
@@ -29,8 +22,8 @@ class IpfsKit {
         this.ipfsSetConfigValue = this.ipfsSetConfigValue;
         this.testInstall = this.testInstall;
         this.ipfsGet = this.ipgetDownloadObject;
-        this.installIpfs = installIpfs.installIpfsDaemon(null);
-
+        let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
+        this.installIpfs = installIpfs;
         if (meta !== null) {
             if ('config' in meta && meta['config'] !== null) {
                 this.config = meta['config'];
@@ -48,15 +41,15 @@ class IpfsKit {
                 this.ipfsPath = meta['ipfs_path'];
             }
             if (['leecher', 'worker', 'master'].includes(this.role)) {
-                this.ipfs = new Ipfs(resources, meta);
-                this.ipget = new Ipget(resources, meta);
+                this.ipfs = new ipfs.ipfs(resources, meta);
+                this.ipget = new ipget.ipget(resources, meta);
             }
             if (this.role === 'worker') {
-                this.ipfsClusterFollow = new IpfsClusterFollow(resources, meta);
+                this.ipfsClusterFollow = new IpfsClusterFollow.IPFSClusterFollow(resources, meta);
             }
             if (this.role === 'master') {
-                this.ipfsClusterCtl = new IpfsClusterCtl(resources, meta);
-                this.ipfsClusterService = new IpfsClusterService(resources, meta);
+                this.ipfsClusterCtl = new IpfsClusterCtl.IPFSClusterCtl(resources, meta);
+                this.ipfsClusterService = new IpfsClusterService.IpfsClusterService(resources, meta);
             }
         }
     }

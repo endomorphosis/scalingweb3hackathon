@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-class TestFio {
+export class TestFio {
     constructor(resources, meta = null) {
     
     }

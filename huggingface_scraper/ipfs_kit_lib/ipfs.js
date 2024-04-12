@@ -1,10 +1,9 @@
-const { exec } = require('child_process');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+import { exec } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-
-class ipfs {
+export class ipfs {
     constructor(resources, meta = null) {
         if (meta !== null) {
             if ('config' in meta) {

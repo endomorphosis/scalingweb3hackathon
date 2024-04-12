@@ -1,4 +1,6 @@
- class IPFSClusterFollow {
+import { execSync, exec } from 'child_process';
+
+export class IPFSClusterFollow {
     constructor(resources, meta = {}) {
         // Default values
         this.config = {};
@@ -178,7 +180,7 @@
 
 }
 
-if (require.main === module) {
+function main(){
 
     const meta = {
         cluster_name: "test"

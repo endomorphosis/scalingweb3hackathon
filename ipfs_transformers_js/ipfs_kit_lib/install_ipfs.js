@@ -1,8 +1,8 @@
 
-const { execSync, exec } = require('child_process');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+import { execSync, exec } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 
 class InstallIPFS {

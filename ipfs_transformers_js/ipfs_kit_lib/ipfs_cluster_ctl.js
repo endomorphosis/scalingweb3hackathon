@@ -1,4 +1,4 @@
-class IPFSClusterCtl {
+export class IPFSClusterCtl {
     constructor(resources, meta = null) {
         this.config = {};
         this.role = "leecher"; // Default role

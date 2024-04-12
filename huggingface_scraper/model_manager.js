@@ -8,13 +8,15 @@ import { exec } from 'child_process';
 //import AWS from 'aws-sdk';
 //import { S3 } from 'aws-sdk';
 //import ipfsClient from 'ipfs-http-client';
-import * as TestFio from './test_fio.js';
-import * as S3Kit from './s3_kit.js';
-import * as IpfsKit from './ipfs_kit_lib/ipfs_kit.js';
+import * as test_fio from './test_fio.js';
+import * as s3_kit from './s3_kit.js';
+import * as ipfs_kit from './ipfs_kit.js';
+import * as install_ipfs from './ipfs_kit_lib/install_ipfs.js';
 import fsExtra from 'fs-extra';
 import crypto from 'crypto';
 import rimraf from 'rimraf';
 import _ from 'lodash';
+import * as tmp from "./tmp_file.js";
 
 //const s3 = new AWS.S3();
 //const ipfs = ipfsClient('http://localhost:5001');
@@ -26,7 +28,7 @@ const rimrafAsync = util.promisify(rimraf);
 
 class ModelManager {
     constructor(resources = null, meta = null) {
-        let localPath = '/cloudkit_storage/';
+        let localPath
         this.models = {
             "s3_models": [],
             "ipfs_models": [],
@@ -44,6 +46,14 @@ class ModelManager {
         this.thisModel = null;
         this.thisModelName = null;
         this.s3cfg = null;
+        let username = os.userInfo().username;
+        if (username === "root") {
+            this.localPath = "/root/";
+            localPath = this.localPath;
+        } else {
+            this.localPath = "/home/" + username;
+            localPath = this.localPath;
+        }
         if (meta !== null && typeof meta === 'object') {
             this.s3cfg = meta.s3cfg || null;
             this.ipfsSrc = meta.ipfs_src || null;
@@ -52,12 +62,27 @@ class ModelManager {
             this.modelHistory = meta.history || null;
             this.role = meta.role || null;
             this.clusterName = meta.cluster_name || null;
-            this.localPath = meta.local_path || (this.ipfsPath + "cloudkit-models/");
+            if (Object.keys(meta).includes("local_path")){
+                this.localPath = meta.local_path;
+            }
+            else {
+                this.local_path = localPath + "/.cache/huggingface/";
+                meta.local_path = this.local_path;
+            }
+            if (Object.keys(meta).includes("ipfs_path")){
+                this.ipfsPath = meta.ipfs_path || (this.localPath + "/.cache/ipfs/");
+                meta.ipfs_path = this.ipfsPath;
+            }
+            else{
+                this.ipfsPath = this.localPath + "/.cache/ipfs/";
+                meta.ipfs_path = this.ipfsPath;
+            }
+            this.ipfsPath = meta.ipfs_path || (this.localPath + "/.cache/ipfs/");
             this.s3cfg = meta.s3_cfg || null;
-            this.ipfsPath = meta.ipfs_path || (this.localPath + "ipfs/");
-        } else {
+        } 
+        else {
             this.localPath = this.ipfsPath + "cloudkit-models/";
-            this.ipfsPath = "/root/ipfs/";
+            // get the username of the current user and determine if its root
             this.s3cfg = null;
             this.role = "leecher";
             this.clusterName = "cloudkit_storage";
@@ -79,10 +104,11 @@ class ModelManager {
 
         let homeDir = os.homedir();
         let homeDirFiles = fs.readdirSync(homeDir);
-        this.testFio = TestFio
-        this.s3Kit = S3Kit;
-        this.ipfsKit = IpfsKit;
-        this.installIpfs = InstallIpfs;
+        this.testFio = new test_fio.TestFio();
+        this.s3Kit = new s3_kit.S3Kit(resources, meta);
+        this.ipfsKit = new ipfs_kit.IpfsKit(resources, meta);
+        let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
+        this.installIpfs = installIpfs;
         let ipfsPath = this.ipfsPath;
         if (!fs.existsSync(this.ipfsPath)) {
             fs.mkdirSync(this.ipfsPath, { recursive: true });
@@ -100,15 +126,15 @@ class ModelManager {
                 ipfsPath: this.ipfsPath,
             });
         } else if (this.role === "master" && !homeDirFiles.includes('.ipfs-cluster-service')) {
-            this.installIpfs.installIpfsClusterService();
-            this.installIpfs.installIpfsClusterCtl();
-            this.installIpfs.configIpfsClusterService();
+            this.installIpfs.installIPFSClusterService();
+            this.installIpfs.installIPFSClusterCtl();
+            this.installIpfs.configIPFSClusterService();
             this.installIpfs.configIpfsClusterCtl();
         } else if (this.role === "worker" && !homeDirFiles.includes('.ipfs-cluster-follow')) {
-            this.installIpfs.installIpfsClusterService();
-            this.installIpfs.installIpfsClusterFollow();
-            this.installIpfs.configIpfsClusterService();
-            this.installIpfs.configIpfsClusterFollow();
+            this.installIpfs.installIPFSClusterService();
+            this.installIpfs.installIPFSClusterFollow();
+            this.installIpfs.configIPFSClusterService();
+            this.installIpfs.configIPFSClusterFollow();
         }
 
         this.ipfsKit.ipfsKitStop();
@@ -182,7 +208,16 @@ class ModelManager {
         }
     
         try {
-            let thisTempFile = tmp.fileSync({ postfix: '.json', dir: '/tmp' });
+            let thisTempFile = await new Promise((resolve, reject) => {
+                tmp.file({  postfix: '.json', dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({ name: path, fd, removeCallback: cleanupCallback });
+                    }
+                });
+            });
+    
             let results = await this.ipfsKit.ipfsGet(this.ipfsSrc, thisTempFile.name);
             if (results && results.length > 0) {
                 this.ipfsCollection = JSON.parse(fs.readFileSync(thisTempFile.name, 'utf8'));
@@ -194,7 +229,16 @@ class ModelManager {
         }
     
         try {
-            let thisTempFile = tmp.fileSync({ postfix: '.json', dir: '/tmp' });
+            let thisTempFile = await new Promise((resolve, reject) => {
+                tmp.file({  postfix: '.json', dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({ name: path, fd, removeCallback: cleanupCallback });
+                    }
+                });
+            });
+    
             await this.s3Kit.s3DlFile('collection.json', thisTempFile.name, this.s3cfg["bucket"]);
             this.s3Collection = JSON.parse(fs.readFileSync(thisTempFile.name, 'utf8'));
         } catch (e) {
@@ -251,8 +295,16 @@ class ModelManager {
                 dstPath = path.join(dirname, filename);
             }
         }
-
-        let thisTempFile = tmp.fileSync({ postfix: suffix, dir: '/tmp' });
+           
+        let thisTempFile = await new Promise((resolve, reject) => {
+            tmp.file({ postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ name: path, fd, removeCallback: cleanupCallback });
+                }
+            });
+        });
         let tmpFilename = thisTempFile.name.split("/").pop();
         let command = `aria2c -x 16 ${httpsSrc} -d /tmp -o ${tmpFilename} --allow-overwrite=true`;
         await exec(command);
@@ -287,7 +339,16 @@ class ModelManager {
         if (filenameDst.split(".").length > 1) {
             try {
                 let suffix = "." + filenameDst.split(".").pop();
-                let thisTempFile = tmp.fileSync({ postfix: suffix, dir: '/tmp' });
+                let thisTempFile = await new Promise((resolve, reject) => {
+                    tmp.file({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve({ name: path, fd, removeCallback: cleanupCallback });
+                        }
+                    });
+                });
+    
                 let thisFileKey = s3Src.split(s3cfg["bucket"] + "/")[1];
 
                 let params = {
@@ -331,8 +392,16 @@ class ModelManager {
             try {
                 if (!filenameDst.includes(".cache") && filenameDst.includes(".")) {
                     let suffix = "." + filenameDst.split(".").pop();
-                    let thisTempFile = tmp.fileSync({ postfix: suffix, dir: '/tmp' });
-
+                    let thisTempFile = await new Promise((resolve, reject) => {
+                        tmp.file({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve({ name: path, fd, removeCallback: cleanupCallback });
+                            }
+                        });
+                    });
+        
                     let results = await ipfs.get(ipfsSrc, { timeout: 10000 });
                     if (results.path) {
                         fs.renameSync(results.path, filenameDst);
@@ -654,7 +723,7 @@ class ModelManager {
             this.local_collection = JSON.parse(data);
         }
         try {
-            let https_download = await this.download_https(cache.https, '/tmp/collection.json');
+            let https_collection = await this.downloadHttps(cache.https, '/tmp/collection.json');
             if (fs.existsSync("./collection.json/collection.json")) {
                 await moveFile("./collection.json/collection.json", "/tmp/collection.json");
                 await rimraf("./collection.json");
@@ -671,7 +740,7 @@ class ModelManager {
         }
         let timestamp_1 = Date.now();
         try {
-            let ipfs_download = await this.download_ipfs(cache.ipfs, '/tmp/collection.json');
+            let ipfs_download = await this.downloadIpfs(cache.ipfs, '/tmp/collection.json');
             let data = await readFile(ipfs_download);
             this.ipfs_collection = JSON.parse(data);
         } catch (e) {
@@ -679,7 +748,8 @@ class ModelManager {
         }
         let timestamp_2 = Date.now();
         try {
-            let s3_download = await this.download_s3(cache.s3, '/tmp/collection.json');
+            let s3_download = await this.downloadS3(cache.s3, '/tmp/collection.json');
+//            let s3_download = await this.download_s3(cache.s3, '/tmp/collection.json');
             let data = await readFile(s3_download);
             this.s3_collection = JSON.parse(data);
         } catch (e) {
@@ -794,7 +864,16 @@ class ModelManager {
         // IPFS test
         try {
             ipfs_test = false;
-            let this_temp_file = tmp.fileSync({ postfix: '.md' });
+            let thisTempFile = await new Promise((resolve, reject) => {
+                tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({ name: path, fd, removeCallback: cleanupCallback });
+                    }
+                });
+            });
+
             if ("/README.md" in Object.keys(this_model_manifest_cache["ipfs"])) {
                 let ipfs_test_file = await this.download_ipfs(this_model_manifest_cache["ipfs"]["/README.md"]["path"], this_temp_file.name);
                 let ipfs_test = fs.readFileSync(ipfs_test_file, 'utf8');
@@ -808,7 +887,15 @@ class ModelManager {
 
         // S3 test
         try {
-            let this_temp_file = tmp.fileSync({ postfix: '.md' });
+            let thisTempFile = await new Promise((resolve, reject) => {
+                tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({ name: path, fd, removeCallback: cleanupCallback });
+                    }
+                });
+            });
             if ("/README.md" in Object.keys(this_model_manifest_cache["s3"])) {
                 let s3_test;
                 if (this_model_manifest_cache["s3"]["/README.md"]["url"].startsWith("s3://")) {
@@ -832,7 +919,15 @@ class ModelManager {
 
         // HTTPS test
         try {
-            let this_temp_file = tmp.fileSync({ postfix: '.md' });
+            let thisTempFile = await new Promise((resolve, reject) => {
+                tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({ name: path, fd, removeCallback: cleanupCallback });
+                    }
+                });
+            });
             if ("/README.md" in Object.keys(this_model_manifest_cache["https"])) {
                 let https_url = this_model_manifest_cache["https"]["/README.md"]["url"];
                 let https_test_file = await this.download_https(https_url, this_temp_file.name);
@@ -1471,7 +1566,7 @@ async check_zombies(kwargs = {}) {
 
 
   test(kwargs = {}) {
-    this.load_collection_cache();
+    this.loadCollectionCache();
     this.state();
     // this.state({src: "s3"});
     this.state({src: "local"});
@@ -1507,9 +1602,9 @@ const s3cfg = {
     "bucket": bucket
 };
 const cluster_name = "cloudkit_storage";
-let ipfs_path = "/storage/";
+//let ipfs_path = "/storage/";
 const local_path = "/storage/cloudkit-models";
-ipfs_path = "/storage/ipfs/";
+//ipfs_path = "/storage/ipfs/";
 const ten_mins = 600;
 const ten_hours = 36000;
 const ten_days = 864000;
@@ -1534,9 +1629,9 @@ const meta = {
     "cache": cache,
     "role": role,
     "cluster_name": cluster_name,
-    "ipfs_path": ipfs_path,
-    "local_path": local_path,
-    "ipfs_path": ipfs_path
+    //"ipfs_path": ipfs_path,
+    //"local_path": local_path,
+    //"ipfs_path": ipfs_path
 };
 
 const models_manager = new ModelManager(null, meta);

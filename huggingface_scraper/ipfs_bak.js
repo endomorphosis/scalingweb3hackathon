@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import child_process, { exec } from 'child_process'
 
-export class ipfsClusterCtl {
+export default class ipfsClusterCtl {
     constructor(){
         this.pinset = get_pinset()
         this.exec = {}
@@ -13,7 +13,6 @@ export class ipfsClusterCtl {
     main(){
         return this
     }
-
 
     check_collection(collection){
         let status = {}

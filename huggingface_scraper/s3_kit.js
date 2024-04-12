@@ -5,7 +5,7 @@ import os from 'os';
 import util from 'util';
 import { ObjectLockEnabled } from '@aws-sdk/client-s3';
 
-class S3Kit {
+export class S3Kit {
   constructor(resources, meta = null) {
     this.bucket = null;
     this.bucketFiles = null;
@@ -435,8 +435,17 @@ class S3Kit {
           fileData = Buffer.from(uploadFile);
           fileExtension = path.extname(path);
         }
-        const tmpFile = tmp.fileSync({ postfix: fileExtension });
-        fs.writeFileSync(tmpFile.name, fileData);
+        let tmpFile = await new Promise((resolve, reject) => {
+          tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+              if (err) {
+                  reject(err);
+              } else {
+                  resolve({ name: path, fd, removeCallback: cleanupCallback });
+              }
+          });
+          fs.writeFileSync(tmpFile.name, fileData);
+        });
+
         const params = {
           Bucket: bucket,
           Key: path,

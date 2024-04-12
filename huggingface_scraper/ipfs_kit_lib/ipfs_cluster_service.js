@@ -1,7 +1,7 @@
  
-const { execSync } = require('child_process');
+import { execSync } from 'child_process';
 
-class IpfsClusterService {
+export class IpfsClusterService {
     constructor(resources, meta = null) {
         this.role = "leecher";
         if (meta !== null) {
@@ -45,7 +45,7 @@ class IpfsClusterService {
         return results;
     }
 }
-if (require.main === module) {
+function main(){
     const thisIpfsClusterService = new IpfsClusterService();
     const results = thisIpfsClusterService.test_ipfs_cluster_service();
     console.log(results);

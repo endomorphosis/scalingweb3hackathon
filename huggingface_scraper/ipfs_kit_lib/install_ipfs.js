@@ -1,12 +1,14 @@
 
-const { execSync, exec } = require('child_process');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+import { execSync, exec } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import * as test_fio from './test_fio.js';
 
-
-class InstallIPFS {
+export class InstallIPFS {
     constructor(resources, meta = null) {
+        this.resources = resources;
+        this.meta = meta;
         if (meta !== null) {
             this.config = meta.config ? meta.config : null;
 
@@ -23,15 +25,15 @@ class InstallIPFS {
                 this.ipfs_path = meta.ipfs_path;
                 if (!fs.existsSync(this.ipfs_path)) {
                     fs.mkdirSync(this.ipfs_path, { recursive: true });
-                    let testDisk = new testFio();
-                    this.disk_name = testDisk.diskDeviceNameFromLocation(this.ipfs_path);
-                    this.disk_stats = {
-                        disk_size: testDisk.diskDeviceTotalCapacity(this.disk_name),
-                        disk_used: testDisk.diskDeviceUsedCapacity(this.disk_name),
-                        disk_avail: testDisk.diskDeviceAvailCapacity(this.disk_name),
-                        disk_name: this.disk_name
-                    };
                 }
+                let testDisk = new test_fio.TestFio();
+                this.disk_name = testDisk.disk_device_name_from_location(this.ipfs_path);
+                this.disk_stats = {
+                    disk_size: testDisk.disk_device_total_capacity(this.disk_name),
+                    disk_used: testDisk.disk_device_used_capacity(this.disk_name),
+                    disk_avail: testDisk.disk_device_avail_capacity(this.disk_name),
+                    disk_name: this.disk_name
+                };
             } else {
                 this.ipfs_path = null;
                 this.disk_stats = null;
@@ -42,22 +44,22 @@ class InstallIPFS {
 
             if (['leecher', 'worker', 'master'].includes(this.role) && this.ipfs_path) {
                 // Bind the methods for installing and configuring IPFS
-                this.ipfs_install_command = this.install_ipfs_daemon.bind(this);
-                this.ipfs_config_command = this.config_ipfs.bind(this);
+                this.ipfs_install_command = this.installIPFSDaemon.bind(this);
+                this.ipfs_config_command = this.configIPFS.bind(this);
             }
 
             if (this.role === "worker" && this.cluster_name && this.ipfs_path) {
                 // Bind methods for worker role
-                this.cluster_install = this.install_ipfs_cluster_follow.bind(this);
-                this.cluster_config = this.config_ipfs_cluster_follow.bind(this);
+                this.cluster_install = this.installIPFSClusterFollow.bind(this);
+                this.cluster_config = this.configIPFSClusterFollow.bind(this);
             }
 
             if (this.role === "master" && this.cluster_name && this.ipfs_path) {
                 // Bind methods for master role
-                this.cluster_ctl_install = this.install_ipfs_cluster_ctl.bind(this);
-                this.cluster_ctl_config = this.config_ipfs_cluster_ctl.bind(this);
-                this.cluster_service_install = this.install_ipfs_cluster_service.bind(this);
-                this.cluster_service_config = this.config_ipfs_cluster_service.bind(this);
+                this.cluster_ctl_install = this.installIPFSClusterCtl.bind(this);
+                this.cluster_ctl_config = this.configIPFSClusterCtl.bind(this);
+                this.cluster_service_install = this.installIPFSClusterService.bind(this);
+                this.cluster_service_config = this.configIPFSClusterService.bind(this);
             }
         }
     }
@@ -418,7 +420,7 @@ class InstallIPFS {
                 let command1 = `ipfs-cluster-follow ${clusterName} init ${ipfsPath}`;
                 let results1 = execSync(command1).toString();
 
-                let thisDir = __dirname;
+                let thisDir = process.cwd();
                 let clusterPath = path.join(ipfsPath, clusterName);
                 let homeDir = os.homedir();
                 let followPath = path.join(homeDir, ".ipfs-cluster-follow", clusterName);
@@ -809,7 +811,7 @@ class InstallIPFS {
 }
 // run this if the script is run directly
 
-if (require.main === module) {
+function main(){
     const meta = {
         role: "worker",
         clusterName: "cloudkit_storage",

@@ -94,15 +94,15 @@ class ModelManager {
                 ipfsPath: this.ipfsPath,
             });
         } else if (this.role === "master" && !homeDirFiles.includes('.ipfs-cluster-service')) {
-            this.installIpfs.installIpfsClusterService();
-            this.installIpfs.installIpfsClusterCtl();
-            this.installIpfs.configIpfsClusterService();
+            this.installIpfs.installIPFSClusterService();
+            this.installIpfs.installIPFSClusterCtl();
+            this.installIpfs.configIPFSClusterService();
             this.installIpfs.configIpfsClusterCtl();
         } else if (this.role === "worker" && !homeDirFiles.includes('.ipfs-cluster-follow')) {
-            this.installIpfs.installIpfsClusterService();
-            this.installIpfs.installIpfsClusterFollow();
-            this.installIpfs.configIpfsClusterService();
-            this.installIpfs.configIpfsClusterFollow();
+            this.installIpfs.installIPFSClusterService();
+            this.installIpfs.installIPFSClusterFollow();
+            this.installIpfs.configIPFSClusterService();
+            this.installIpfs.configIPFSClusterFollow();
         }
 
         this.ipfsKit.ipfsKitStop();
@@ -177,6 +177,7 @@ class ModelManager {
     
         try {
             let thisTempFile = tmp.fileSync({ postfix: '.json', dir: '/tmp' });
+            
             let results = await this.ipfsKit.ipfsGet(this.ipfsSrc, thisTempFile.name);
             if (results && results.length > 0) {
                 this.ipfsCollection = JSON.parse(fs.readFileSync(thisTempFile.name, 'utf8'));
