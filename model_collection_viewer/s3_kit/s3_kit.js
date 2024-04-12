@@ -543,9 +543,16 @@ class S3Kit {
             upload_file = Buffer.from(upload_file);
             file_extension = pathModule.extname(path);
         }
-    
-        const { path: tempFilePath, cleanup } = await tmp.file({ postfix: file_extension });
-        fs.writeFileSync(tempFilePath, upload_file);
+        let thisTempFile = await new Promise((resolve, reject) => {
+            tmpFile.createTempFile({  postfix: file_extension, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                if (err) {
+                    reject(err);
+                }
+            }).then(tempFilePath, fd, cleanupCallback => {
+                fs.writeFileSync(tempFilePath, fileData);
+                resolve({ tempFilePath, fd, cleanupCallback });
+            }); 
+        });
         upload_file = fs.createReadStream(tempFilePath);
     
         const s3 = new AWS.S3(this.config_to_boto(s3_config));

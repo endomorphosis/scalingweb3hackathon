@@ -36,7 +36,7 @@ export class Manifest{
         }
         if (ipfs_path != undefined){
             this.env.ipfs_path = ipfs_path
-            this.ipfs_path = ipfs_path
+            this.ipfsPath = ipfs_path
         }
         if (local_model_path != undefined){
             this.env.local_model_path = local_model_path
@@ -64,7 +64,7 @@ export class Manifest{
             this.hf_creds,
             this.mysql_creds,
             this.local_model_path,
-            this.ipfs_path,
+            this.ipfsPath,
             this.collection_path
         )
         let processing = this_process_manifest.process_prompted_manifest(generated_manifest, folder)

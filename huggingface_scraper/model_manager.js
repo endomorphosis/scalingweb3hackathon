@@ -16,7 +16,7 @@ import fsExtra from 'fs-extra';
 import crypto from 'crypto';
 import rimraf from 'rimraf';
 import _ from 'lodash';
-import * as tmp from "./tmp_file.js";
+import * as temp_file from "./tmp_file.js";
 
 //const s3 = new AWS.S3();
 //const ipfs = ipfsClient('http://localhost:5001');
@@ -25,6 +25,7 @@ const writeFile = util.promisify(fs.writeFile);
 const stat = util.promisify(fs.stat);
 const moveFile = util.promisify(fs.rename);
 const rimrafAsync = util.promisify(rimraf);
+const tmpFile = new temp_file.TempFileManager()
 
 class ModelManager {
     constructor(resources = null, meta = null) {
@@ -209,7 +210,7 @@ class ModelManager {
     
         try {
             let thisTempFile = await new Promise((resolve, reject) => {
-                tmp.file({  postfix: '.json', dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                tmpFile.createTempFile({  postfix: '.json', dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -230,7 +231,7 @@ class ModelManager {
     
         try {
             let thisTempFile = await new Promise((resolve, reject) => {
-                tmp.file({  postfix: '.json', dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                tmpFile.createTempFile({  postfix: '.json', dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -297,17 +298,21 @@ class ModelManager {
         }
            
         let thisTempFile = await new Promise((resolve, reject) => {
-            tmp.file({ postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+            tmpFile.createTempFile({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                 if (err) {
                     reject(err);
-                } else {
-                    resolve({ name: path, fd, removeCallback: cleanupCallback });
-                }
+                } else {  
+                    let tmpFilename = path.split("/").pop();
+                    let command = `aria2c -x 16 ${httpsSrc} -d /tmp -o ${tmpFilename} --allow-overwrite=true`;          
+                    exec(command).then(() => {
+                        resolve({ name: path, fd, removeCallback: cleanupCallback });
+                    }).catch((e) => {
+                        reject(e);
+                    });
+                }   
             });
         });
-        let tmpFilename = thisTempFile.name.split("/").pop();
-        let command = `aria2c -x 16 ${httpsSrc} -d /tmp -o ${tmpFilename} --allow-overwrite=true`;
-        await exec(command);
+        
 
         if (fs.existsSync(dstPath)) {
             let command2 = `rm ${dstPath}`;
@@ -340,7 +345,7 @@ class ModelManager {
             try {
                 let suffix = "." + filenameDst.split(".").pop();
                 let thisTempFile = await new Promise((resolve, reject) => {
-                    tmp.file({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                    tmpFile.createTempFile({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                         if (err) {
                             reject(err);
                         } else {
@@ -393,7 +398,7 @@ class ModelManager {
                 if (!filenameDst.includes(".cache") && filenameDst.includes(".")) {
                     let suffix = "." + filenameDst.split(".").pop();
                     let thisTempFile = await new Promise((resolve, reject) => {
-                        tmp.file({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                        tmpFile.createTempFile({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                             if (err) {
                                 reject(err);
                             } else {
@@ -865,7 +870,7 @@ class ModelManager {
         try {
             ipfs_test = false;
             let thisTempFile = await new Promise((resolve, reject) => {
-                tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                tmpFile.createTempFile({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -888,7 +893,7 @@ class ModelManager {
         // S3 test
         try {
             let thisTempFile = await new Promise((resolve, reject) => {
-                tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                tmp.createTempFile({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -920,7 +925,7 @@ class ModelManager {
         // HTTPS test
         try {
             let thisTempFile = await new Promise((resolve, reject) => {
-                tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+                tmpFile.createTempFile({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
                     if (err) {
                         reject(err);
                     } else {
@@ -1210,15 +1215,15 @@ class ModelManager {
     const ten_days_ago = timestamp - 8640000;
 
     try {
-      if (fs.existsSync(path.join(this.ipfs_path, "state.json"))) {
-        const state_mtime = fs.statSync(path.join(this.ipfs_path, "state.json")).mtime.getTime() / 1000;
+      if (fs.existsSync(path.join(this.ipfsPath, "state.json"))) {
+        const state_mtime = fs.statSync(path.join(this.ipfsPath, "state.json")).mtime.getTime() / 1000;
         if (state_mtime > one_day_ago) {
           this.last_update = state_mtime;
-          this.models = JSON.parse(fs.readFileSync(path.join(this.ipfs_path, "state.json"), 'utf8'));
+          this.models = JSON.parse(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8'));
           this.last_update = timestamp;
         }
       } else {
-        execSync(`touch ${path.join(this.ipfs_path, "state.json")}`);
+        execSync(`touch ${path.join(this.ipfsPath, "state.json")}`);
       }
     } catch (e) {
       this.models = {};
@@ -1240,15 +1245,15 @@ class ModelManager {
     let state_json_md5;
 
     try {
-      const state_json = JSON.parse(fs.readFileSync(path.join(this.ipfs_path, "state.json"), 'utf8'));
-      state_json_md5 = crypto.createHash('md5').update(JSON.stringify(state_json)).digest('hex');
+        const state_json = JSON.parse(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8'));
+        state_json_md5 = crypto.createHash('md5').update(JSON.stringify(state_json)).digest('hex');
     } catch (e) {
-      fs.writeFileSync(path.join(this.ipfs_path, "state.json"), stringified_models);
-      state_json_md5 = crypto.createHash('md5').update(fs.readFileSync(path.join(this.ipfs_path, "state.json"), 'utf8')).digest('hex');
+        fs.writeFileSync(path.join(this.ipfsPath, "state.json"), stringified_models);
+        state_json_md5 = crypto.createHash('md5').update(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8')).digest('hex');
     }
 
     if (models_md5 !== state_json_md5) {
-      fs.writeFileSync(path.join(this.ipfs_path, "state.json"), stringified_models);
+        fs.writeFileSync(path.join(this.ipfsPath, "state.json"), stringified_models);
     }
 
     return this.models;
@@ -1327,7 +1332,7 @@ class ModelManager {
 async check_history_models(kwargs = {}) {
     const ls_models = this.ls_models();
     const current_timestamp = Date.now() / 1000;
-    const history_json_path = path.join(this.ipfs_path, "history.json");
+    const history_json_path = path.join(this.ipfsPath, "history.json");
   
     if (Object.keys(this.history_models).length === 0) {
       if (fs.existsSync(history_json_path)) {
@@ -1466,21 +1471,21 @@ async check_zombies(kwargs = {}) {
     return this.expired;
   }
 
-  check_pinned_models(kwargs = {}) {
-    const ls_models = this.ls_models();
+    check_pinned_models(kwargs = {}) {
+        const ls_models = this.ls_models();
   
-    while (Object.keys(this.pinned_models).length < 5) {
-      const random_number = Math.random();
-      const calculate = Math.round(random_number * ls_models.length);
-      if (calculate < ls_models.length) {
-        const chosen_model = ls_models[calculate];
-        this.pinned_models[chosen_model] = Date.now() / 1000;
-      }
+        while (Object.keys(this.pinnedModels).length < 5) {
+            const random_number = Math.random();
+            const calculate = Math.round(random_number * ls_models.length);
+            if (calculate < ls_models.length) {
+                const chosen_model = ls_models[calculate];
+                this.pinnedModels[chosen_model] = Date.now() / 1000;
+            }
+        }
+    
+        // remove later and get data from orchestrator
+        return this.pinned;
     }
-  
-    // remove later and get data from orchestrator
-    return this.pinned;
-  }
 
   check_not_found(kwargs = {}) {
     const ls_models = this.ls_models();
@@ -1502,7 +1507,7 @@ async check_zombies(kwargs = {}) {
       }
     }
   
-    for (const model in this.pinned_models) {
+    for (const model in this.pinnedModels) {
       if ("local_models" in this.models && !(model in this.models["local_models"])) {
         not_found["local"].push(model);
       }
@@ -1519,7 +1524,7 @@ async check_zombies(kwargs = {}) {
     const current_timestamp = Date.now() / 1000;
     const not_found = this.check_not_found();
     for (const model of not_found["local"]) {
-      if (model in this.pinned_models) {
+      if (model in this.pinnedModels) {
         this.download_model(model);
         this.models["local_models"][model] = Date.now() / 1000;
       } else if (this.history_models[model] > current_timestamp - this.timing["local_time"]) {
@@ -1528,7 +1533,7 @@ async check_zombies(kwargs = {}) {
       }
     }
     for (const model of not_found["s3"]) {
-      if (model in this.pinned_models) {
+      if (model in this.pinnedModels) {
         this.s3_kit.s3_ul_dir(this.local_path + "/" + model, this.s3cfg["bucket"], this.models["s3_models"][model]["folderData"]);
         this.models["s3_models"][model] = Date.now() / 1000;
       } else if (this.history_models[model] > current_timestamp - this.timing["s3_time"]) {

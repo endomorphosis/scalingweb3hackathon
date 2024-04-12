@@ -23,7 +23,7 @@ export class Scraper {
         }
         if (ipfs_path != undefined) {
             process.env.ipfs_path = ipfs_path;
-            this.ipfs_path = ipfs_path;
+            this.ipfsPath = ipfs_path;
         }
         if (collection_path != undefined) {
             process.env.collection_path = collection_path;
@@ -73,7 +73,7 @@ export class Scraper {
                 this.hf_creds,
                 this.mysql_creds,
                 this.local_model_path,
-                this.ipfs_path,
+                this.ipfsPath,
                 this.collection_path
             );
             let processed_manifest = this_process_manifest.process_prompted_manifest(this_manifest);
@@ -88,7 +88,7 @@ export class Scraper {
                 this.hf_creds,
                 this.mysql_creds,
                 this.local_model_path,
-                this.ipfs_path,
+                this.ipfsPath,
                 this.collection_path
             );
             this_manifest.import_from_hf();
@@ -100,7 +100,7 @@ export class Scraper {
                 this.hf_creds,
                 this.mysql_creds,
                 this.local_model_path,
-                this.ipfs_path,
+                this.ipfsPath,
                 this.collection_path
             );
             this_manifest.import_from_hf(model);

@@ -31,7 +31,7 @@ export class process_manifest
         }
         if (ipfs_path != undefined){
             process.env.ipfs_path = ipfs_path
-            this.ipfs_path = ipfs_path
+            this.ipfsPath = ipfs_path
         }
         if (collection_path != undefined){
             process.env.collection_path = collection_path
@@ -47,8 +47,8 @@ export class process_manifest
         if(!fs.existsSync(this.local_model_path)){
             fs.mkdirSync(this.local_model_path)
         }
-        if(!fs.existsSync(this.ipfs_path)){
-            fs.mkdirSync(this.ipfs_path)
+        if(!fs.existsSync(this.ipfsPath)){
+            fs.mkdirSync(this.ipfsPath)
         }
         if(!fs.existsSync("/tmp/build")){
             fs.mkdirSync("/tmp/build")

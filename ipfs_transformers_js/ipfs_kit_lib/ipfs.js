@@ -29,7 +29,7 @@ class ipfs {
             }
             if ('ipfs_path' in meta) {
                 if (meta['ipfs_path'] !== null) {
-                    this.ipfs_path = meta['ipfs_path'];
+                    this.ipfsPath = meta['ipfs_path'];
                 }
             }
             if (this.role === 'leecher' || this.role === 'worker' || this.role === 'master') {
@@ -77,7 +77,7 @@ class ipfs {
         // Run this if user is not root or root user fails check if it passes
         if (os.userInfo().uid !== 0 || ipfs_ready === false) {
             try {
-                const command2 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs daemon --enable-gc --enable-pubsub-experiment`;
+                const command2 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs daemon --enable-gc --enable-pubsub-experiment`;
                 const subprocess = spawn(command2, { shell: true, stdio: 'pipe' });
                 subprocess.stdout.on('data', (data) => {
                     results2 = data.toString();
@@ -213,7 +213,7 @@ class ipfs {
 
     async ipfs_get_pinset(kwargs = {}) {
         const this_tempfile = path.join(os.tmpdir(), 'temp.txt');
-        const command = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs pin ls -s > ${this_tempfile}`;
+        const command = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs pin ls -s > ${this_tempfile}`;
         await new Promise((resolve, reject) => {
             exec(command, (error, stdout, stderr) => {
                 if (error) {
@@ -239,7 +239,7 @@ class ipfs {
         const dirname = path.dirname(__filename);
         let result1;
         try {
-            const command1 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && cd ${this.ipfs_path}ipfs/ && ipfs pin add ${pin}`;
+            const command1 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && cd ${this.ipfsPath}ipfs/ && ipfs pin add ${pin}`;
             result1 = await new Promise((resolve, reject) => {
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {
@@ -261,7 +261,7 @@ class ipfs {
         const results = [];
         for (let i = 0; i < this_path_split.length; i++) {
             this_path += this_path_split[i] + "/";
-            const command1 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs files mkdir ${this_path}`;
+            const command1 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs files mkdir ${this_path}`;
             const result1 = await new Promise((resolve, reject) => {
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {
@@ -350,7 +350,7 @@ class ipfs {
         }
         const pin = stats['pin'];
         if (stats["type"] === "file") {
-            const command1 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs files rm ${path}`;
+            const command1 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs files rm ${path}`;
             result1 = await new Promise((resolve, reject) => {
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {
@@ -360,7 +360,7 @@ class ipfs {
                     }
                 });
             });
-            const command2 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs pin rm ${pin}`;
+            const command2 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs pin rm ${pin}`;
             result2 = await new Promise((resolve, reject) => {
                 exec(command2, (error, stdout, stderr) => {
                     if (error) {
@@ -390,7 +390,7 @@ class ipfs {
 
     async ipfs_stat_path(path, kwargs = {}) {
         try {
-            const stat1 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs files stat ${path}`;
+            const stat1 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs files stat ${path}`;
             const results1 = await new Promise((resolve, reject) => {
                 exec(stat1, (error, stdout, stderr) => {
                     if (error) {
@@ -428,7 +428,7 @@ class ipfs {
     async ipfs_name_resolve(kwargs = {}) {
         let result1 = null;
         try {
-            const command1 = `export IPFS_PATH=${this.ipfs_path}/ipfs/ && ipfs name resolve ${kwargs['path']}`;
+            const command1 = `export IPFS_PATH=${this.ipfsPath}/ipfs/ && ipfs name resolve ${kwargs['path']}`;
             result1 = await new Promise((resolve, reject) => {
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {
@@ -451,7 +451,7 @@ class ipfs {
         let results1 = null;
         let results2 = null;
         try {
-            const command1 = `export IPFS_PATH=${this.ipfs_path}/ipfs/ && ipfs add --cid-version 1 ${path}`;
+            const command1 = `export IPFS_PATH=${this.ipfsPath}/ipfs/ && ipfs add --cid-version 1 ${path}`;
             results1 = await new Promise((resolve, reject) => {
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {
@@ -472,7 +472,7 @@ class ipfs {
         }
 
         try {
-            const command2 = `export IPFS_PATH=${this.ipfs_path}/ipfs/ && ipfs name publish ${results1[Object.keys(results1)[0]]}`;
+            const command2 = `export IPFS_PATH=${this.ipfsPath}/ipfs/ && ipfs name publish ${results1[Object.keys(results1)[0]]}`;
             results2 = await new Promise((resolve, reject) => {
                 exec(command2, (error, stdout, stderr) => {
                     if (error) {
@@ -498,7 +498,7 @@ class ipfs {
     async ipfs_ls_path(path, kwargs = {}) {
         let results1 = null;
         try {
-            const stat1 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs files ls ${path}`;
+            const stat1 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs files ls ${path}`;
             results1 = await new Promise((resolve, reject) => {
                 exec(stat1, (error, stdout, stderr) => {
                     if (error) {
@@ -524,7 +524,7 @@ class ipfs {
         let stdout = null;
         let stderr = null;
         try {
-            const command1 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs pin rm ${cid}`;
+            const command1 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs pin rm ${cid}`;
             const output = await new Promise((resolve, reject) => {
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {
@@ -551,7 +551,7 @@ class ipfs {
         let stdout = null;
         let stderr = null;
         try {
-            const command1 = `export IPFS_PATH=${this.ipfs_path}ipfs/ && ipfs pin rm ${cid}`;
+            const command1 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs pin rm ${cid}`;
             const output = await new Promise((resolve, reject) => {
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {

@@ -435,8 +435,8 @@ export class S3Kit {
           fileData = Buffer.from(uploadFile);
           fileExtension = path.extname(path);
         }
-        let tmpFile = await new Promise((resolve, reject) => {
-          tmp.file({ postfix: '.md' , dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
+        let thisTempFile = await new Promise((resolve, reject) => {
+          tmpFile.createTempFile({  postfix: '.json', dir: '/tmp' }, (err, path, fd, cleanupCallback) => {
               if (err) {
                   reject(err);
               } else {
