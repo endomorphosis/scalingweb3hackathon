@@ -134,11 +134,11 @@ class ModelManager {
 
     call(method, kwargs) {
         switch (method) {
-            case "load_collection":
+            case "loadCollection":
                 return this.loadCollection(kwargs);
             case "download_model":
                 return this.downloadModel(kwargs);
-            case "load_collection_cache":
+            case "loadCollection_cache":
                 return this.loadCollectionCache(kwargs);
             case "auto_download":
                 return this.autoDownload(kwargs);
@@ -1466,7 +1466,7 @@ async check_zombies(kwargs = {}) {
 
 
   test(kwargs = {}) {
-    this.load_collection_cache();
+    this.loadCollection_cache();
     this.state();
     // this.state({src: "s3"});
     this.state({src: "local"});

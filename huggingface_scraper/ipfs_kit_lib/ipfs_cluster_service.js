@@ -27,13 +27,13 @@ export class IpfsClusterService {
         return detect.length > 0;
     }
 
-    ipfs_cluster_service_start() {
+    async ipfs_cluster_service_start() {
         const command = "systemctl start ipfs-cluster-service";
         const results = execSync(command).toString();
         return results;
     }
 
-    ipfs_cluster_service_stop() {
+    async ipfs_cluster_service_stop() {
         const command = "systemctl stop ipfs-cluster-service";
         const results = execSync(command).toString();
         return results;

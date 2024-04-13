@@ -63,7 +63,7 @@ export class IPFSClusterFollow {
         return results;
     }
 
-    ipfsFollowStop(clusterName = this.clusterName) {
+    async ipfsFollowStop(clusterName = this.clusterName) {
         let results = { systemctl: '', bash: '', 'api-socket': '' };
 
         try {

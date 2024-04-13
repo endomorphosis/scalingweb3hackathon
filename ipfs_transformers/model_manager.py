@@ -251,6 +251,7 @@ class model_manager:
                 os.makedirs(dirname)
                 dst_path = os.path.join(dirname,filename)
         
+        
         with tempfile.NamedTemporaryFile(suffix=suffix, dir="/tmp", delete=False) as this_temp_file:
             file_metadata = os.stat(this_temp_file.name)
             tmp_filename = this_temp_file.name.split("/")[-1]

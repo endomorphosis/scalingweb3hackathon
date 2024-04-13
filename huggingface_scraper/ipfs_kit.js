@@ -112,7 +112,7 @@ export class IpfsKit {
             case "ipfs_upload_object":
                 this.method = 'ipfs_upload_object';
                 return this.ipfs.ipfsUploadObject(kwargs);
-            case "load_collection":
+            case "loadCollection":
                 return this.loadCollection(kwargs);
             default:
                 return;
@@ -124,8 +124,8 @@ export class IpfsKit {
         let cluster_name;
         if (kwargs.cluster_name) {
             cluster_name = kwargs.cluster_name;
-        } else if (this.cluster_name) {
-            cluster_name = this.cluster_name;
+        } else if (this.clusterName !== null) {
+            cluster_name = this.clusterName;
         } else if (this.role !== "leecher") {
             throw new Error("cluster_name is not defined");
         }
@@ -134,7 +134,6 @@ export class IpfsKit {
         let ipfs_ready = false;
         let ipfs_cluster_ready = false;
     
-        const { exec } = require('child_process');
         const command1 = "ps -ef | grep ipfs | grep daemon | grep -v grep | wc -l";
         const execute1 = await new Promise((resolve, reject) => {
             exec(command1, (error, stdout, stderr) => {
@@ -387,12 +386,12 @@ export class IpfsKit {
     
         if (this.role === "master") {
             try {
-                ipfsClusterService = await this.ipfsClusterService.ipfsClusterServiceStop();
+                ipfsClusterService = await this.ipfsClusterService.ipfs_cluster_service_stop();
             } catch (e) {
                 ipfsClusterService = e.toString();
             }
             try {
-                ipfs = await this.ipfs.daemonStop();
+                ipfs = await this.ipfs.daemon_stop();
             } catch (e) {
                 ipfs = e.toString();
             }
@@ -404,14 +403,14 @@ export class IpfsKit {
                 ipfsClusterFollow = e.toString();
             }
             try {
-                ipfs = await this.ipfs.daemonStop();
+                ipfs = await this.ipfs.daemon_stop();
             } catch (e) {
                 ipfs = e.toString();
             }
         }
         if (this.role === "leecher") {
             try {
-                ipfs = await this.ipfs.daemonStop();
+                ipfs = await this.ipfs.daemon_stop();
             } catch (e) {
                 ipfs = e.toString();
             }
@@ -431,19 +430,19 @@ export class IpfsKit {
     
         if (this.role === "master") {
             try {
-                ipfs = await this.ipfs.daemonStart();
+                ipfs = await this.ipfs.daemon_start();
             } catch (e) {
                 ipfs = e.toString();
             }
             try {
-                ipfsClusterService = await this.ipfsClusterService.ipfsClusterServiceStart();
+                ipfsClusterService = await this.ipfsClusterService.ipfs_cluster_service_start();
             } catch (e) {
                 ipfsClusterService = e.toString();
             }
         }
         if (this.role === "worker") {
             try {
-                ipfs = await this.ipfs.daemonStart();
+                ipfs = await this.ipfs.daemon_start();
             } catch (e) {
                 ipfs = e.toString();
             }
@@ -455,7 +454,7 @@ export class IpfsKit {
         }
         if (this.role === "leecher") {
             try {
-                ipfs = await this.ipfs.daemonStart();
+                ipfs = await this.ipfs.daemon_start();
             } catch (e) {
                 ipfs = e.toString();
             }

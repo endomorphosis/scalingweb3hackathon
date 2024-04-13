@@ -6,7 +6,10 @@ import crypto from 'crypto';
 
 export class TempFileManager {
     constructor(resources, meta = null) {
+        this.createTempDirectory = this.createTempDirectory.bind(this);
+        this.createTempFile = this.createTempFile.bind(this);
     }
+
     createTempFile({ postfix, dir, }) {
         const randomString = crypto.randomBytes(12).toString('hex');
         const tempFileName = `${randomString}.${postfix}`;
@@ -15,7 +18,8 @@ export class TempFileManager {
         const cleanupCallback = () => {
             fs.unlinkSync(tempFilePath);
         };
-        return ({ tempFilePath, fd, cleanupCallback });
+        let results = { tempFilePath, fd, cleanupCallback };
+        return (results);
     }
 
     createTempDirectory({ dir }) {
