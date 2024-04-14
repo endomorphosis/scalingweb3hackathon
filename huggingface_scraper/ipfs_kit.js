@@ -38,8 +38,6 @@ export class IpfsKit {
             if ('ipfs_path' in meta && meta['ipfs_path'] !== null) {
                 this.ipfsPath = meta['ipfs_path'];
             }
-            let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
-            this.installIpfs = installIpfs;    
             if (['leecher', 'worker', 'master'].includes(this.role)) {
                 this.ipfs = new ipfs.ipfs(resources, meta);
                 this.ipget = new ipget.ipget(resources, meta);
@@ -55,6 +53,9 @@ export class IpfsKit {
         else{
             this.role = 'leecher';
         }
+        let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
+        this.installIpfs = installIpfs;
+
     }
 
     call(method, kwargs = {}) {
