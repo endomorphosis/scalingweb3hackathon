@@ -170,7 +170,7 @@ class ModelManager {
         };
     }
 
-    call(method, kwargs) {
+    async call(method, kwargs) {
         switch (method) {
             case "loadCollection":
                 return this.loadCollection(kwargs);
@@ -725,7 +725,6 @@ class ModelManager {
         }
     }
 
-
     async loadCollectionCache(cache = {
         local: "/storage/cloudkit-models/collection.json",
         s3: "s3://cloudkit-beta/collection.json",
@@ -1043,7 +1042,7 @@ class ModelManager {
         }
     }
 
-    ls_models() {
+    async ls_models() {
         let ipfs_keys = [];
         let s3_keys = [];
         let local_keys = [];
@@ -1066,7 +1065,7 @@ class ModelManager {
     }
 
 
-    ls_s3_models() {
+    async ls_s3_models() {
         let ls_models = this.ls_models();
         let s3_models = {};
         let timestamps = {};
@@ -1108,7 +1107,7 @@ class ModelManager {
         return s3_models;
     }
 
-    ls_local_models(kwargs) {
+    async ls_local_models(kwargs) {
         let lsModels = this.ls_models();
         let localModels = {};
         let timestamps = {};
@@ -1179,7 +1178,7 @@ class ModelManager {
         return localModels;
     }
 
-    ls_https_models() {
+    async ls_https_models() {
         let ls_models = this.ls_models();
         let https_models = {};
         let timestamps = {};
@@ -1238,8 +1237,8 @@ class ModelManager {
     }
 
 
-    ls_ipfs_models() {
-        let ls_models = this.ls_models();
+    async ls_ipfs_models() {
+        let ls_models = await this.ls_models();
         let ipfs_models = {};
         let timestamps = {};
         let this_collection;
@@ -1299,84 +1298,84 @@ class ModelManager {
         return ipfs_models;
     }
 
+    async state(kwargs = {}) {
+        const timestamp = Date.now() / 1000;
+        const one_hour_ago = timestamp - 3600;
+        const one_day_ago = timestamp - 86400;
+        const ten_days_ago = timestamp - 8640000;
 
-  state(kwargs = {}) {
-    const timestamp = Date.now() / 1000;
-    const one_hour_ago = timestamp - 3600;
-    const one_day_ago = timestamp - 86400;
-    const ten_days_ago = timestamp - 8640000;
+        try {
+            if (fs.existsSync(path.join(this.ipfsPath, "state.json"))) {
+                const state_mtime = fs.statSync(path.join(this.ipfsPath, "state.json")).mtime.getTime() / 1000;
+                if (state_mtime > one_day_ago) {
+                    this.last_update = state_mtime;
+                    this.models = JSON.parse(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8'));
+                    this.last_update = timestamp;
+                }
+            } else {
+                execSync(`touch ${path.join(this.ipfsPath, "state.json")}`);
+            }
+        } catch (e) {
+            this.models = {};
+        }
+        let src = kwargs.hasOwnProperty("src") ? kwargs["src"] : "all";
 
-    try {
-      if (fs.existsSync(path.join(this.ipfsPath, "state.json"))) {
-        const state_mtime = fs.statSync(path.join(this.ipfsPath, "state.json")).mtime.getTime() / 1000;
-        if (state_mtime > one_day_ago) {
-          this.last_update = state_mtime;
-          this.models = JSON.parse(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8'));
-          this.last_update = timestamp;
+        if (src !== "all") {
+            if (src === "s3") {
+                this.models["s3_models"] = this.ls_s3_models();
+            } else if (src === "ipfs") {
+                this.ipfs_pinset = this.ipfsKit.ipfsGetPinset();
+                this.models["ipfs_models"] = this.ls_ipfs_models();
+            } else if (src === "local") {
+                this.models["local_models"] = this.ls_local_models();
+            } else if (src === "https") {
+                this.models["https_models"] = this.ls_https_models();
+            }
+        } else {
+            if (this.last_update < ten_days_ago) {
+                this.loadCollection();
+                this.models["s3_models"] = this.ls_s3_models();
+                this.models["ipfs_models"] = this.ls_ipfs_models();
+                this.models["local_models"] = this.ls_local_models();
+                this.models["https_models"] = this.ls_https_models();
+                this.ipfs_pinset = this.ipfsKit.ipfsGetPinset();
+                this.last_update = timestamp;
+            }
         }
-      } else {
-        execSync(`touch ${path.join(this.ipfsPath, "state.json")}`);
-      }
-    } catch (e) {
-      this.models = {};
-    }
-    let src = kwargs.hasOwnProperty("src") ? kwargs["src"] : "all";
-
-    if (src !== "all") {
-        if (src === "s3") {
-            this.models["s3_models"] = this.ls_s3_models();
-        } else if (src === "ipfs") {
-            this.ipfs_pinset = this.ipfsKit.ipfsGetPinset();
-            this.models["ipfs_models"] = this.ls_ipfs_models();
-        } else if (src === "local") {
-            this.models["local_models"] = this.ls_local_models();
-        } else if (src === "https") {
-            this.models["https_models"] = this.ls_https_models();
+        
+        if (this.models.hasOwnProperty("s3Models")) {
+            this.models["s3_models"] = this.models["s3Models"];
+            delete this.models["s3Models"];
         }
-    } else {
-        if (this.last_update < ten_days_ago) {
-            this.loadCollection();
-            this.models["s3_models"] = this.ls_s3_models();
-            this.models["ipfs_models"] = this.ls_ipfs_models();
-            this.models["local_models"] = this.ls_local_models();
-            this.models["https_models"] = this.ls_https_models();
-            this.ipfs_pinset = this.ipfsKit.ipfsGetPinset();
-            this.last_update = timestamp;
+        if (this.models.hasOwnProperty("ipfsModels")) {
+            this.models["ipfs_models"] = this.models["ipfsModels"];
+            delete this.models["ipfsModels"];
         }
-    }
-    
-    if (this.models.hasOwnProperty("s3Models")) {
-        this.models["s3_models"] = this.models["s3Models"];
-        delete this.models["s3Models"];
-    }
-    if (this.models.hasOwnProperty("ipfsModels")) {
-        this.models["ipfs_models"] = this.models["ipfsModels"];
-        delete this.models["ipfsModels"];
-    }
-    if (this.models.hasOwnProperty("httpsModels")) {
-        this.models["https_models"] = this.models["httpsModels"];
-        delete this.models["httpsModels"];
-    }
-    if (this.models.hasOwnProperty("localModels")) {
-        this.models["local_models"] = this.models["localModels"];
-        delete this.models["localModels"];
-    }
-    
-    for (let model in this.collection) {
-        if (model !== "cache") {
-            let this_model = this.collection[model];
-            let cache = this_model["cache"];
-            if (cache.hasOwnProperty("ipfs")) {
-                let ipfs = cache["ipfs"];
-                for (let file in ipfs) {
-                    let this_file = ipfs[file];
-                    if (this_file.hasOwnProperty("path")) {
-                        let path = this_file["path"];
-                        if (!this.collection_pins.includes(path)) {
-                            if (this.ipfs_pinset["ipfs"].hasOwnProperty(path)) {
-                                let pin_type = this.ipfs_pinset["ipfs"][path];
-                                if (pin_type !== "indirect") {
-                                    this.collection_pins.push(path);
+        if (this.models.hasOwnProperty("httpsModels")) {
+            this.models["https_models"] = this.models["httpsModels"];
+            delete this.models["httpsModels"];
+        }
+        if (this.models.hasOwnProperty("localModels")) {
+            this.models["local_models"] = this.models["localModels"];
+            delete this.models["localModels"];
+        }
+        
+        for (let model in this.collection) {
+            if (model !== "cache") {
+                let this_model = this.collection[model];
+                let cache = this_model["cache"];
+                if (cache.hasOwnProperty("ipfs")) {
+                    let ipfs = cache["ipfs"];
+                    for (let file in ipfs) {
+                        let this_file = ipfs[file];
+                        if (this_file.hasOwnProperty("path")) {
+                            let path = this_file["path"];
+                            if (!this.collection_pins.includes(path)) {
+                                if (this.ipfs_pinset["ipfs"].hasOwnProperty(path)) {
+                                    let pin_type = this.ipfs_pinset["ipfs"][path];
+                                    if (pin_type !== "indirect") {
+                                        this.collection_pins.push(path);
+                                    }
                                 }
                             }
                         }
@@ -1384,242 +1383,239 @@ class ModelManager {
                 }
             }
         }
-    }
 
-    const stringified_models = JSON.stringify(this.models);
-    const models_md5 = crypto.createHash('md5').update(stringified_models).digest('hex');
-    let state_json_md5;
+        const stringified_models = JSON.stringify(this.models);
+        const models_md5 = crypto.createHash('md5').update(stringified_models).digest('hex');
+        let state_json_md5;
 
-    try {
-        const state_json = JSON.parse(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8'));
-        state_json_md5 = crypto.createHash('md5').update(JSON.stringify(state_json)).digest('hex');
-    } catch (e) {
-        fs.writeFileSync(path.join(this.ipfsPath, "state.json"), stringified_models);
-        state_json_md5 = crypto.createHash('md5').update(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8')).digest('hex');
-    }
-
-    if (models_md5 !== state_json_md5) {
-        fs.writeFileSync(path.join(this.ipfsPath, "state.json"), stringified_models);
-    }
-
-    return this.models;
-  }
-
-
-  evict_local(model, kwargs = {}) {
-    const local_model_path = path.join(this.local_path, model);
-    if (fs.existsSync(local_model_path)) {
-      rimraf.sync(local_model_path);
-    }
-    return true;
-  }
-
-  async evict_s3(model, kwargs = {}) {
-    const s3_model_path = this.collection[model]["cache"]["s3"];
-    const s3_model_url = s3_model_path[0]["url"];
-    const s3_model_path_parts = s3_model_url.split("/");
-    const s3_model_bucket = s3_model_path_parts[2];
-    const s3_model_dir = s3_model_path_parts[3];
-    const results = await this.s3_kit.deleteObject({
-      Bucket: s3_model_bucket,
-      Key: s3_model_dir
-    }).promise();
-    return results;
-  }
-
-  async evict_models(kwargs = {}) {
-    const ls_models = this.ls_models();
-    const history = this.history();
-    const current_timestamp = Date.now() / 1000;
-  
-    for (const model of ls_models) {
-      if (this.models["local_models"].hasOwnProperty(model)) {
-        const this_model_timestamp = this.models["local_models"][model];
-        const this_history_timestamp = new Date(history[model]).getTime() / 1000;
-        if (current_timestamp - this_model_timestamp > this.timing["local_time"] && current_timestamp - this_history_timestamp > this.timing["local_time"]) {
-          await this.evict_local(model);
-          delete this.models["local_models"][model];
-        }
-      } else if (this.models["s3_models"].hasOwnProperty(model)) {
-        const this_model_timestamp = this.models["s3_models"][model];
-        const this_history_timestamp = new Date(history[model]).getTime() / 1000;
-        if (current_timestamp - this_model_timestamp > this.timing["s3_time"] && current_timestamp - this_history_timestamp > this.timing["s3_time"]) {
-          await this.evict_s3(model);
-          delete this.models["s3_models"][model];
-        }
-      }
-    }
-  
-    for (const model in this.models["local_models"]) {
-      if (!ls_models.includes(model)) {
-        await this.evict_local(model);
-        delete this.models["local_models"][model];
-      }
-    }
-  
-    for (const model in this.models["s3_models"]) {
-      if (!ls_models.includes(model)) {
-        await this.evict_s3(model);
-        delete this.models["s3_models"][model];
-      }
-    }
-  
-    const results = {
-      "s3_models": this.models["s3_models"],
-      "ipfs_models": this.models["ipfs_models"],
-      "local_models": this.models["local_models"],
-      "https_models": this.models["https_models"]
-    };
-  
-    return results;
-  }
-
-
-async check_history_models(kwargs = {}) {
-    const ls_models = this.ls_models();
-    const current_timestamp = Date.now() / 1000;
-    const history_json_path = path.join(this.ipfsPath, "history.json");
-  
-    if (Object.keys(this.history_models).length === 0) {
-      if (fs.existsSync(history_json_path)) {
         try {
-          this.history_models = JSON.parse(fs.readFileSync(history_json_path, 'utf8'));
+            const state_json = JSON.parse(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8'));
+            state_json_md5 = crypto.createHash('md5').update(JSON.stringify(state_json)).digest('hex');
         } catch (e) {
-          fs.writeFileSync(history_json_path, JSON.stringify({}));
+            fs.writeFileSync(path.join(this.ipfsPath, "state.json"), stringified_models);
+            state_json_md5 = crypto.createHash('md5').update(fs.readFileSync(path.join(this.ipfsPath, "state.json"), 'utf8')).digest('hex');
         }
-      }
-    }
-  
-    for (const model of ls_models) {
-      if (!this.history_models.hasOwnProperty(model)) {
-        this.history_models[model] = null;
-      }
-  
-      if (this.history_models[model] !== null) {
-        const this_model_timestamp = new Date(this.history[model]).getTime() / 1000;
-        if (current_timestamp - this_model_timestamp > 60) {
-          this.history_models[model] = null;
-        }
-      }
-    }
-  
-    for (const model in this.history_models) {
-      if (!ls_models.includes(model)) {
-        delete this.history_models[model];
-      }
-    }
-  
-    const history_json_mtime = fs.existsSync(history_json_path) ? fs.statSync(history_json_path).mtime.getTime() / 1000 : null;
-    if (!history_json_mtime || current_timestamp - history_json_mtime > 60) {
-      fs.writeFileSync(history_json_path, JSON.stringify(this.history_models));
-    }
-  
-    return this.history_models;
-  }
 
+        if (models_md5 !== state_json_md5) {
+            fs.writeFileSync(path.join(this.ipfsPath, "state.json"), stringified_models);
+        }
 
-async check_zombies(kwargs = {}) {
-    const ls_models = this.ls_models();
-    const local_files = fs.readdirSync(this.local_path, { withFileTypes: true });
-    const ls_local_files = [];
-    const collection_files = ["collection.json"];
-    const zombies = {};
-  
-    local_files.forEach(file => {
-      if (file.isFile()) {
-        let tmp_filename = path.join(this.local_path, file.name);
-        tmp_filename = tmp_filename.split(path.sep).slice(3).join(path.sep);
-        const split_tmp_filename = tmp_filename.split(path.sep);
-        if (split_tmp_filename.length > 1 && !tmp_filename.includes("ipfs") && !tmp_filename.includes("cloudkit")) {
-          ls_local_files.push(tmp_filename);
-        }
-      }
-    });
-  
-    for (const model in this.collection) {
-      if (model !== "cache") {
-        const this_model = this.collection[model];
-        const this_folder_name = this_model["id"];
-        const this_folder_data = this_model["folderData"];
-        this_folder_data.forEach(file => {
-          collection_files.push(this_folder_name + file);
-        });
-      }
+        return this.models;
     }
-  
-    const s3_files = await this.s3_kit.s3_ls_dir("", this.s3cfg["bucket"]);
-    const s3_file_names = s3_files.map(file => file["key"]);
-  
-    const ipfs_files = await this.ipfs_kit.ipfs_ls_path("/");
-    const ipfs_file_names = ipfs_files["ipfs_ls_path"].map(file => file["name"]);
-  
-    const collection_pins = this.collection_pins;
-  
-    const compare_s3_files = s3_file_names.filter(x => !collection_files.includes(x));
-    zombies["s3"] = compare_s3_files;
-    const compare_local_files = ls_local_files.filter(x => !collection_files.includes(x));
-    zombies["local"] = compare_local_files;
-    const compare_ipfs_files = ipfs_file_names.filter(x => !collection_files.includes(x));
-    zombies["ipfs_files"] = compare_ipfs_files;
-    const compare_ipfs_pins = collection_pins.filter(x => !this.ipfs_pinset.includes(x));
-    zombies["ipfs"] = compare_ipfs_pins;
-  
-    this.zombies = zombies;
-    return zombies;
-  }
-  rand_history(kwargs = {}) {
-    const history = this.history_models;
-    const two_weeks_ago = Date.now() / 1000 - 14 * 24 * 60 * 60;
-    const two_days_ago = Date.now() / 1000 - 2 * 24 * 60 * 60;
-    const now = Date.now() / 1000;
-  
-    for (const model in history) {
-      const random_float = Math.random();
-      const random_timestamp = ((now - two_weeks_ago) * random_float) + two_weeks_ago;
-      history[model] = random_timestamp;
-    }
-  
-    this.history_models = history;
-    return history;
-  }
 
-  check_expired(kwargs = {}) {
-    const ls_models = this.ls_models();
-    const current_timestamp = Date.now() / 1000;
-    const expired = {
-      "local" : [],
-      "s3" : [],
-      "ipfs": [],
-    };
-  
-    for (const model of ls_models) {
-      if ("local_models" in this.models && model in this.models["local_models"]) {
-        const this_model_timestamp = this.models["local_models"][model];
-        if (current_timestamp - this_model_timestamp > this.timing["local_time"] && current_timestamp - this.history_models[model] > this.timing["local_time"]) {
-          expired["local"].push(model);
+    async evict_local(model, kwargs = {}) {
+        const local_model_path = path.join(this.local_path, model);
+        if (fs.existsSync(local_model_path)) {
+            rimraf.sync(local_model_path);
         }
-      }
-      if ("s3Models" in this.models && model in this.models["s3Models"]) {
-        const this_model_timestamp = this.models["s3Models"][model];
-        if (current_timestamp - this_model_timestamp > this.timing["s3_time"] && current_timestamp - this.history_models[model] > this.timing["s3_time"]) {
-          expired["s3"].push(model);
-        }
-      }
-      if ("s3_models" in this.models && model in this.models["s3_models"]) {
-        const this_model_timestamp = this.models["s3_models"][model];
-        if (current_timestamp - this_model_timestamp > this.timing["s3_time"] && current_timestamp - this.history_models[model] > this.timing["s3_time"]) {
-          expired["s3"].push(model);
-        }
-      }
+        return true;
     }
-  
-    this.expired = expired;
-    return this.expired;
-  }
 
-    check_pinned_models(kwargs = {}) {
+    async evict_s3(model, kwargs = {}) {
+        const s3_model_path = this.collection[model]["cache"]["s3"];
+        const s3_model_url = s3_model_path[0]["url"];
+        const s3_model_path_parts = s3_model_url.split("/");
+        const s3_model_bucket = s3_model_path_parts[2];
+        const s3_model_dir = s3_model_path_parts[3];
+        const results = await this.s3_kit.deleteObject({
+            Bucket: s3_model_bucket,
+            Key: s3_model_dir
+        }).promise();
+        return results;
+    }
+
+    async evict_models(kwargs = {}) {
         const ls_models = this.ls_models();
-  
+        const history = this.history();
+        const current_timestamp = Date.now() / 1000;
+    
+        for (const model of ls_models) {
+            if (this.models["local_models"].hasOwnProperty(model)) {
+                const this_model_timestamp = this.models["local_models"][model];
+                const this_history_timestamp = new Date(history[model]).getTime() / 1000;
+                if (current_timestamp - this_model_timestamp > this.timing["local_time"] && current_timestamp - this_history_timestamp > this.timing["local_time"]) {
+                    await this.evict_local(model);
+                    delete this.models["local_models"][model];
+                }
+            } else if (this.models["s3_models"].hasOwnProperty(model)) {
+                const this_model_timestamp = this.models["s3_models"][model];
+                const this_history_timestamp = new Date(history[model]).getTime() / 1000;
+                if (current_timestamp - this_model_timestamp > this.timing["s3_time"] && current_timestamp - this_history_timestamp > this.timing["s3_time"]) {
+                    await this.evict_s3(model);
+                    delete this.models["s3_models"][model];
+                }
+            }
+        }
+    
+        for (const model in this.models["local_models"]) {
+            if (!ls_models.includes(model)) {
+                await this.evict_local(model);
+                delete this.models["local_models"][model];
+            }
+        }
+    
+        for (const model in this.models["s3_models"]) {
+            if (!ls_models.includes(model)) {
+                await this.evict_s3(model);
+                delete this.models["s3_models"][model];
+            }
+        }
+    
+        const results = {
+            "s3_models": this.models["s3_models"],
+            "ipfs_models": this.models["ipfs_models"],
+            "local_models": this.models["local_models"],
+            "https_models": this.models["https_models"]
+        };
+    
+        return results;
+    }
+
+
+    async check_history_models(kwargs = {}) {
+        const ls_models = this.ls_models();
+        const current_timestamp = Date.now() / 1000;
+        const history_json_path = path.join(this.ipfsPath, "history.json");
+    
+        if (Object.keys(this.history_models).length === 0) {
+            if (fs.existsSync(history_json_path)) {
+                try {
+                    this.history_models = JSON.parse(fs.readFileSync(history_json_path, 'utf8'));
+                } catch (e) {
+                    fs.writeFileSync(history_json_path, JSON.stringify({}));
+                }
+            }
+        }
+    
+        for (const model of ls_models) {
+            if (!this.history_models.hasOwnProperty(model)) {
+                this.history_models[model] = null;
+            }
+    
+            if (this.history_models[model] !== null) {
+                const this_model_timestamp = new Date(this.history[model]).getTime() / 1000;
+                if (current_timestamp - this_model_timestamp > 60) {
+                    this.history_models[model] = null;
+                }
+            }
+        }
+    
+        for (const model in this.history_models) {
+            if (!ls_models.includes(model)) {
+                delete this.history_models[model];
+            }
+        }
+    
+        const history_json_mtime = fs.existsSync(history_json_path) ? fs.statSync(history_json_path).mtime.getTime() / 1000 : null;
+        if (!history_json_mtime || current_timestamp - history_json_mtime > 60) {
+            fs.writeFileSync(history_json_path, JSON.stringify(this.history_models));
+        }
+    
+        return this.history_models;
+    }
+
+
+    async check_zombies(kwargs = {}) {
+        const ls_models = this.ls_models();
+        const local_files = fs.readdirSync(this.local_path, { withFileTypes: true });
+        const ls_local_files = [];
+        const collection_files = ["collection.json"];
+        const zombies = {};
+    
+        local_files.forEach(file => {
+            if (file.isFile()) {
+                let tmp_filename = path.join(this.local_path, file.name);
+                tmp_filename = tmp_filename.split(path.sep).slice(3).join(path.sep);
+                const split_tmp_filename = tmp_filename.split(path.sep);
+                if (split_tmp_filename.length > 1 && !tmp_filename.includes("ipfs") && !tmp_filename.includes("cloudkit")) {
+                    ls_local_files.push(tmp_filename);
+                }
+            }
+        });
+    
+        for (const model in this.collection) {
+            if (model !== "cache") {
+                const this_model = this.collection[model];
+                const this_folder_name = this_model["id"];
+                const this_folder_data = this_model["folderData"];
+                this_folder_data.forEach(file => {
+                    collection_files.push(this_folder_name + file);
+                });
+            }
+        }
+    
+        const s3_files = await this.s3_kit.s3_ls_dir("", this.s3cfg["bucket"]);
+        const s3_file_names = s3_files.map(file => file["key"]);
+        const ipfs_files = await this.ipfs_kit.ipfs_ls_path("/");
+        const ipfs_file_names = ipfs_files["ipfs_ls_path"].map(file => file["name"]);
+    
+        const collection_pins = this.collection_pins;
+    
+        const compare_s3_files = s3_file_names.filter(x => !collection_files.includes(x));
+        zombies["s3"] = compare_s3_files;
+        const compare_local_files = ls_local_files.filter(x => !collection_files.includes(x));
+        zombies["local"] = compare_local_files;
+        const compare_ipfs_files = ipfs_file_names.filter(x => !collection_files.includes(x));
+        zombies["ipfs_files"] = compare_ipfs_files;
+        const compare_ipfs_pins = collection_pins.filter(x => !this.ipfs_pinset.includes(x));
+        zombies["ipfs"] = compare_ipfs_pins;
+    
+        this.zombies = zombies;
+        return zombies;
+    }
+
+    async rand_history(kwargs = {}) {
+        const history = this.history_models;
+        const two_weeks_ago = Date.now() / 1000 - 14 * 24 * 60 * 60;
+        const two_days_ago = Date.now() / 1000 - 2 * 24 * 60 * 60;
+        const now = Date.now() / 1000;
+    
+        for (const model in history) {
+            const random_float = Math.random();
+            const random_timestamp = ((now - two_weeks_ago) * random_float) + two_weeks_ago;
+            history[model] = random_timestamp;
+        }
+    
+        this.history_models = history;
+        return history;
+    }
+
+    async check_expired(kwargs = {}) {
+        const ls_models = this.ls_models();
+        const current_timestamp = Date.now() / 1000;
+        const expired = {
+        "local" : [],
+        "s3" : [],
+        "ipfs": [],
+        };
+    
+        for (const model of ls_models) {
+            if ("local_models" in this.models && model in this.models["local_models"]) {
+                const this_model_timestamp = this.models["local_models"][model];
+                if (current_timestamp - this_model_timestamp > this.timing["local_time"] && current_timestamp - this.history_models[model] > this.timing["local_time"]) {
+                    expired["local"].push(model);
+                }
+            }
+            if ("s3Models" in this.models && model in this.models["s3Models"]) {
+                const this_model_timestamp = this.models["s3Models"][model];
+                if (current_timestamp - this_model_timestamp > this.timing["s3_time"] && current_timestamp - this.history_models[model] > this.timing["s3_time"]) {
+                    expired["s3"].push(model);
+                }
+            }
+            if ("s3_models" in this.models && model in this.models["s3_models"]) {
+                const this_model_timestamp = this.models["s3_models"][model];
+                if (current_timestamp - this_model_timestamp > this.timing["s3_time"] && current_timestamp - this.history_models[model] > this.timing["s3_time"]) {
+                    expired["s3"].push(model);
+                }
+            }
+        }
+    
+        this.expired = expired;
+        return this.expired;
+    }
+
+    async check_pinned_models(kwargs = {}) {
+        const ls_models = this.ls_models();
         while (Object.keys(this.pinnedModels).length < 5) {
             const random_number = Math.random();
             const calculate = Math.round(random_number * ls_models.length);
@@ -1628,114 +1624,112 @@ async check_zombies(kwargs = {}) {
                 this.pinnedModels[chosen_model] = Date.now() / 1000;
             }
         }
-    
         // remove later and get data from orchestrator
         return this.pinned;
     }
 
-  check_not_found(kwargs = {}) {
-    const ls_models = this.ls_models();
-    const not_found = {
-      "local" : [],
-      "s3" : [],
-    };
-  
-    for (const model in this.history_models) {
-      const current_time = Date.now() / 1000;
-      const time_delta = current_time - this.history_models[model];
-      if (time_delta < this.timing["local_time"]) {
-        if ("local_models" in this.models && !(model in this.models["local_models"])) {
-          not_found["local"].push(model);
+    async check_not_found(kwargs = {}) {
+        const ls_models = this.ls_models();
+        const not_found = {
+            "local" : [],
+            "s3" : [],
+        };
+
+        for (const model in this.history_models) {
+            const current_time = Date.now() / 1000;
+            const time_delta = current_time - this.history_models[model];
+            if (time_delta < this.timing["local_time"]) {
+                if ("local_models" in this.models && !(model in this.models["local_models"])) {
+                    not_found["local"].push(model);
+                }
+                if ("s3_models" in this.models && !(model in this.models["s3_models"])) {
+                    not_found["s3"].push(model);
+                }
+            }
         }
-        if ("s3_models" in this.models && !(model in this.models["s3_models"])) {
-          not_found["s3"].push(model);
+  
+        for (const model in this.pinnedModels) {
+            if ("local_models" in this.models && !(model in this.models["local_models"])) {
+                not_found["local"].push(model);
+            }
+            if ("s3_models" in this.models && !(model in this.models["s3_models"])) {
+                not_found["s3"].push(model);
+            }
         }
-      }
-    }
   
-    for (const model in this.pinnedModels) {
-      if ("local_models" in this.models && !(model in this.models["local_models"])) {
-        not_found["local"].push(model);
-      }
-      if ("s3_models" in this.models && !(model in this.models["s3_models"])) {
-        not_found["s3"].push(model);
-      }
+        this.not_found = not_found;
+        return this.not_found;
     }
-  
-    this.not_found = not_found;
-    return this.not_found;
-  }
 
-  download_missing(kwargs = {}) {
-    const current_timestamp = Date.now() / 1000;
-    const not_found = this.check_not_found();
-    for (const model of not_found["local"]) {
-      if (model in this.pinnedModels) {
-        this.download_model(model);
-        this.models["local_models"][model] = Date.now() / 1000;
-      } else if (this.history_models[model] > current_timestamp - this.timing["local_time"]) {
-        this.download_model(model);
-        this.models["local_models"][model] = Date.now() / 1000;
-      }
+    async download_missing(kwargs = {}) {
+        const current_timestamp = Date.now() / 1000;
+        const not_found = this.check_not_found();
+        for (const model of not_found["local"]) {
+            if (model in this.pinnedModels) {
+                this.download_model(model);
+                this.models["local_models"][model] = Date.now() / 1000;
+            } else if (this.history_models[model] > current_timestamp - this.timing["local_time"]) {
+                this.download_model(model);
+                this.models["local_models"][model] = Date.now() / 1000;
+            }
+        }
+        for (const model of not_found["s3"]) {
+            if (model in this.pinnedModels) {
+                this.s3_kit.s3_ul_dir(this.local_path + "/" + model, this.s3cfg["bucket"], this.models["s3_models"][model]["folderData"]);
+                this.models["s3_models"][model] = Date.now() / 1000;
+            } else if (this.history_models[model] > current_timestamp - this.timing["s3_time"]) {
+                this.s3_kit.s3_ul_dir(this.local_path + "/" + model, this.s3cfg["bucket"], this.models["s3_models"][model]["folderData"]);
+                this.models["s3_models"][model] = Date.now() / 1000;
+            }
+        }
+        return null;
     }
-    for (const model of not_found["s3"]) {
-      if (model in this.pinnedModels) {
-        this.s3_kit.s3_ul_dir(this.local_path + "/" + model, this.s3cfg["bucket"], this.models["s3_models"][model]["folderData"]);
-        this.models["s3_models"][model] = Date.now() / 1000;
-      } else if (this.history_models[model] > current_timestamp - this.timing["s3_time"]) {
-        this.s3_kit.s3_ul_dir(this.local_path + "/" + model, this.s3cfg["bucket"], this.models["s3_models"][model]["folderData"]);
-        this.models["s3_models"][model] = Date.now() / 1000;
-      }
-    }
-    return null;
-  }
 
-  evict_expired_models(kwargs = {}) {
-    const current_timestamp = Date.now() / 1000;
-    const expired = this.expired;
-    for (const model of expired["local"]) {
-      this.evict_local(model);
-      delete this.models["local_models"][model];
+    async evict_expired_models(kwargs = {}) {
+        const current_timestamp = Date.now() / 1000;
+        const expired = this.expired;
+        for (const model of expired["local"]) {
+        this.evict_local(model);
+        delete this.models["local_models"][model];
+        }
+        for (const model of expired["s3"]) {
+        this.evict_s3(model);
+        delete this.models["s3_models"][model];
+        }
+        return null;
     }
-    for (const model of expired["s3"]) {
-      this.evict_s3(model);
-      delete this.models["s3_models"][model];
+    
+    async  evict_zombies(kwargs = {}) {
+        const zombies = this.zombies;
+        for (const file of zombies["local"]) {
+            fs.unlinkSync(path.join(this.local_path, file));
+        }
+        for (const file of zombies["s3"]) {
+            this.s3_kit.s3_rm_file(file, this.s3cfg["bucket"]);
+        }
+        return null;
     }
-    return null;
-  }
-  
-  evict_zombies(kwargs = {}) {
-    const zombies = this.zombies;
-    for (const file of zombies["local"]) {
-      fs.unlinkSync(path.join(this.local_path, file));
-    }
-    for (const file of zombies["s3"]) {
-      this.s3_kit.s3_rm_file(file, this.s3cfg["bucket"]);
-    }
-    return null;
-  }
 
-
-  async test(kwargs = {}) {
-    await this.loadCollectionCache();
-    this.state();
-    this.state({src: "s3"});
-    this.state({src: "local"});
-    this.state({src: "ipfs"});
-    this.state({src: "https"});
-    this.check_pinned_models();
-    this.check_history_models();
-    this.rand_history();
-    this.check_zombies();
-    this.check_expired();
-    this.check_not_found();
-    // this.download_model('gte-small');
-    // this.download_model('stablelm-zephyr-3b-GGUF-Q2_K');
-    this.download_missing();
-    this.evict_expired_models();
-    this.evict_zombies();
-    return this;
-  }
+    async test(kwargs = {}) {
+        await this.loadCollectionCache();
+        await this.state();
+        await this.state({src: "s3"});
+        await this.state({src: "local"});
+        await this.state({src: "ipfs"});
+        await this.state({src: "https"});
+        await this.check_pinned_models();
+        await this.check_history_models();
+        await this.rand_history();
+        await this.check_zombies();
+        await this.check_expired();
+        await this.check_not_found();
+        // this.download_model('gte-small');
+        // this.download_model('stablelm-zephyr-3b-GGUF-Q2_K');
+        await this.download_missing();
+        await this.evict_expired_models();
+        await this.evict_zombies();
+        return this;
+    }
 
 }
 
