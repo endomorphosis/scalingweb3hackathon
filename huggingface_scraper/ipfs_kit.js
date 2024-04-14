@@ -52,6 +52,7 @@ export class IpfsKit {
         }
         else{
             this.role = 'leecher';
+            this.cluster_name = null;
         }
         let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
         this.installIpfs = installIpfs;

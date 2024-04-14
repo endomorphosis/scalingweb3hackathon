@@ -4,7 +4,7 @@ import os from 'os';
 import path from 'path';
 
 export class ipfs {
-    constructor(resources, meta = null) {
+    constructor(resources, meta) {
         if (meta !== null) {
             if ('config' in meta) {
                 if (meta['config'] !== null) {

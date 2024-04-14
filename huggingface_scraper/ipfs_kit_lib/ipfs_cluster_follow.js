@@ -1,7 +1,7 @@
 import { execSync, exec } from 'child_process';
 
 export class IPFSClusterFollow {
-    constructor(resources, meta = {}) {
+    constructor(resources, meta) {
         // Default values
         this.config = {};
         this.role = 'leecher'; // default role
@@ -18,33 +18,45 @@ export class IPFSClusterFollow {
             throw new Error("role is not either master, worker, leecher");
         }
 
-        if (meta.clusterName) {
-            this.clusterName = meta.clusterName;
+        if (meta.cluster_name) {
+            this.clusterName = meta.cluster_name;
         }
     }
 
     async ipfsFollowStart(clusterName = this.clusterName) {
         let results = { systemctl: false, bash: false };
-
-        try {
-            // Attempt to start the ipfs-cluster-follow service
-            const systemctlStart = execSync("systemctl start ipfs-cluster-follow").toString();
-            results.systemctl = systemctlStart;
-
-            // Check if the service is running
-            const detectResults = execSync("ps -ef | grep ipfs-cluster-follow | grep -v grep").toString().trim();
-            
-            if (detectResults.length === 0) {
-                const homeDir = os.homedir();
-                const followDir = path.join(homeDir, ".ipfs-cluster-follow", clusterName);
-
-                // Check for and remove the api-socket file if it exists
-                const apiSocketPath = path.join(followDir, "api-socket");
-                if (fs.existsSync(apiSocketPath)) {
-                    fs.unlinkSync(apiSocketPath);
-                    results.bash = true;
+        let detectResults
+        if (os.userInfo().uid === 0) {
+            try {
+                // Attempt to start the ipfs-cluster-follow service
+                let systemctlStart = execSync("systemctl start ipfs-cluster-follow").toString();
+                results.systemctl = systemctlStart;
+                // Check if the service is running
+                detectResults = execSync("ps -ef | grep ipfs-cluster-follow | grep -v grep").toString().trim();
+                        
+                if (detectResults.length === 0) {
+                    const homeDir = os.homedir();
+                    const followDir = path.join(homeDir, ".ipfs-cluster-follow", clusterName);
+                    // Check for and remove the api-socket file if it exists
+                    const apiSocketPath = path.join(followDir, "api-socket");
+                    if (fs.existsSync(apiSocketPath)) {
+                        fs.unlinkSync(apiSocketPath);
+                        results.bash = true;
+                    }
+                    // Attempt to start the ipfs-cluster-follow service
+                    let systemctlStart = execSync("systemctl start ipfs-cluster-follow").toString();
+                    results.systemctl = systemctlStart;
+                    // Check if the service is running
+                    detectResults = execSync("ps -ef | grep ipfs-cluster-follow | grep -v grep").toString().trim();
                 }
-                
+            }
+            catch (error) {
+                console.log(`Error starting ipfs-cluster-follow: ${error.message}`);
+                results.systemctl = `Error: ${error.message}`;
+            }
+        } 
+        if (os.userInfo().uid != 0 || results.systemctl.includes('Error') || detectResults.length === 0) {
+            try {            
                 // Attempt to run the ipfs-cluster-follow command
                 const commandRun = `/usr/local/bin/ipfs-cluster-follow ${clusterName} run`;
                 const process = exec(commandRun, (error, stdout, stderr) => {
@@ -55,31 +67,36 @@ export class IPFSClusterFollow {
                     console.log(`ipfs-cluster-follow output: ${stdout}`);
                 });
             }
-        } catch (error) {
-            console.error(`Error in ipfsFollowStart: ${error.message}`);
-        }
-
+            catch (error) {
+                console.log(`Error running ipfs-cluster-follow: ${error.message}`);
+                console.error(`Error in ipfsFollowStart: ${error.message}`);
+            }
+        } 
         return results;
     }
 
-    async ipfsFollowStop(clusterName = this.clusterName) {
+    async ipfsFollowStop() {
         let results = { systemctl: '', bash: '', 'api-socket': '' };
-
-        try {
-            // Attempt to stop the ipfs-cluster-follow service
-            const systemctlStop = execSync("systemctl stop ipfs-cluster-follow").toString();
-            results.systemctl = systemctlStop;
-        } catch (error) {
-            results.systemctl = `Error: ${error.message}`;
+        let clusterName = this.clusterName;
+        
+        if (os.userInfo().uid === 0) {
+            try {
+                // Attempt to stop the ipfs-cluster-follow service
+                const systemctlStop = execSync("systemctl stop ipfs-cluster-follow").toString();
+                results.systemctl = systemctlStop;
+            } catch (error) {
+                results.systemctl = `Error: ${error.message}`;
+            }
         }
-
-        try {
-            // Forcefully kill the ipfs-cluster-follow process if it's still running
-            const killCommand = "ps -ef | grep ipfs-cluster-follow | grep -v grep | awk '{print $2}' | xargs kill -9";
-            const killResults = execSync(killCommand).toString();
-            results.bash = killResults;
-        } catch (error) {
-            results.bash = `Error: ${error.message}`;
+        if (os.userInfo().uid != 0 || results.systemctl.includes('Error')){
+            try {
+                // Forcefully kill the ipfs-cluster-follow process if it's still running
+                const killCommand = "ps -ef | grep ipfs-cluster-follow | grep -v grep | awk '{print $2}' | xargs kill -9";
+                const killResults = execSync(killCommand).toString();
+                results.bash = killResults;
+            } catch (error) {
+                results.bash = `Error: ${error.message}`;
+            }
         }
 
         try {
@@ -132,7 +149,8 @@ export class IPFSClusterFollow {
     }
 
 
-    async ipfsFollowInfo(clusterName = this.clusterName) {
+    async ipfsFollowInfo(kwargs = {}) {
+        let clusterName = this.clusterName;
         let resultsDict = {};
 
         try {

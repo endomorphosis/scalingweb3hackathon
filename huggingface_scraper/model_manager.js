@@ -113,8 +113,8 @@ class ModelManager {
         let homeDirFiles = fs.readdirSync(homeDir);
         this.testFio = new test_fio.TestFio();
         this.s3Kit = new s3_kit.S3Kit(resources, meta);
-        this.ipfsKit = new ipfs_kit.IpfsKit(resources, meta);
         let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
+        this.ipfsKit = new ipfs_kit.IpfsKit(resources, meta);
         this.installIpfs = installIpfs;
         let ipfsPath = this.ipfsPath;
         if (!fs.existsSync(this.ipfsPath)) {
@@ -304,13 +304,14 @@ class ModelManager {
         }
         try{
             let thisTempFile = await new Promise((resolve, reject) => {
-                this.tmpFile.createTempFile({  postfix: suffix, dir: '/tmp' }, (err, path, fd, cleanupCallback) => {                    if (err) {
+                this.tmpFile.createTempFile({  postfix: suffix, dir: '/tmp' }, async (err, path, fd, cleanupCallback) => {                    
+                    if (err) {
                         console.log(err);
                         reject(err);
                     } else {  
                         let tmpFilename = path.split("/").pop();
                         let command = `aria2c -x 16 ${httpsSrc} -d /tmp -o ${tmpFilename} --allow-overwrite=true`;          
-                        exec(command).then(() => {
+                        await execsync(command).then(() => {
                             resolve({ name: path, fd, removeCallback: cleanupCallback });
                         }).catch((e) => {
                             console.log(e);
