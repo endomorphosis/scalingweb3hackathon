@@ -29,7 +29,7 @@ const tmpFile = new temp_file.TempFileManager()
 
 class ModelManager {
     constructor(resources = null, meta = null) {
-        let localPath
+        let localPatAnonh
         this.models = {
             "s3_models": [],
             "ipfs_models": [],
@@ -53,6 +53,7 @@ class ModelManager {
         this.thisModelName = null;
         this.s3cfg = null;
         let username = os.userInfo().username;
+        let localPath
         if (username === "root") {
             this.localPath = "/root/";
             localPath = this.localPath;
@@ -72,22 +73,22 @@ class ModelManager {
                 this.localPath = meta.local_path;
             }
             else {
-                this.local_path = localPath + "/.cache/huggingface/";
-                meta.local_path = this.local_path;
+                this.localpath = path.join(localPath, ".cache/huggingface");
+                meta.local_path = path.join(localPath, ".cache/huggingface");
             }
             if (Object.keys(meta).includes("ipfs_path")){
-                this.ipfsPath = meta.ipfs_path || (this.localPath + "/.cache/ipfs/");
-                meta.ipfs_path = this.ipfsPath;
+                this.ipfsPath = meta.ipfs_path || path.join(this.localPath  , ".cache/ipfs");
+                meta.ipfs_path = meta.ipfs_path || path.join(this.localPath  , ".cache/ipfs");
             }
             else{
-                this.ipfsPath = this.localPath + "/.cache/ipfs/";
-                meta.ipfs_path = this.ipfsPath;
+                this.ipfsPath = path.join(this.localPath, ".cache/ipfs");
+                meta.ipfs_path = path.join(this.localPath, ".cache/ipfs");
             }
-            this.ipfsPath = meta.ipfs_path || (this.localPath + "/.cache/ipfs/");
+            this.ipfsPath = meta.ipfs_path || (this.localPath + "/.cache/ipfs");
             this.s3cfg = meta.s3_cfg || null;
         } 
         else {
-            this.localPath = this.ipfsPath + "cloudkit-models/";
+            this.localPath = path.join(this.ipfsPath , "cloudkit-models");
             // get the username of the current user and determine if its root
             this.s3cfg = null;
             this.role = "leecher";
@@ -99,7 +100,7 @@ class ModelManager {
                 "https": "https://huggingface.co/endomorphosis/cloudkit-collection/resolve/main/collection.json"
             };
             meta = {
-                "local_path": this.localPath,
+                "local_path": this.localPath || localPath,
                 "ipfs_path": this.ipfsPath,
                 "s3_cfg": this.s3cfg,
                 "role": this.role,
@@ -1780,5 +1781,5 @@ const meta = {
 };
 
 const models_manager = new ModelManager(null, meta);
-const results = models_manager.test();
+const results = await models_manager.test();
 console.log(results);

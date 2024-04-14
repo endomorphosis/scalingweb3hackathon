@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -37,7 +37,7 @@ export class ipfs {
         }
     }
 
-    daemon_start(kwargs = {}) {
+    async daemon_start(kwargs = {}) {
         let cluster_name;
         if ('cluster_name' in this) {
             cluster_name = this.cluster_name;
@@ -95,7 +95,7 @@ export class ipfs {
     }
 
 
-    daemon_stop(kwargs = {}) {
+    async daemon_stop(kwargs = {}) {
         let cluster_name;
         if ('cluster_name' in this) {
             cluster_name = this.cluster_name;

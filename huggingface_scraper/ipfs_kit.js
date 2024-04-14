@@ -10,11 +10,11 @@ import util from 'util';
 import { promisify } from 'util';
 import { promises as fsPromises } from 'fs';
 import os from 'os';
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 
 
 export class IpfsKit {
-    constructor(resources, meta = null) {
+    constructor(resources, meta) {
         this.role = null;
         this.ipfsGetConfig = this.ipfsGetConfig;
         this.ipfsSetConfig = this.ipfsSetConfig;
@@ -22,8 +22,6 @@ export class IpfsKit {
         this.ipfsSetConfigValue = this.ipfsSetConfigValue;
         this.testInstall = this.testInstall;
         this.ipfsGet = this.ipgetDownloadObject;
-        let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
-        this.installIpfs = installIpfs;
         if (meta !== null) {
             if ('config' in meta && meta['config'] !== null) {
                 this.config = meta['config'];
@@ -40,6 +38,8 @@ export class IpfsKit {
             if ('ipfs_path' in meta && meta['ipfs_path'] !== null) {
                 this.ipfsPath = meta['ipfs_path'];
             }
+            let installIpfs = new install_ipfs.InstallIPFS(resources, meta);
+            this.installIpfs = installIpfs;    
             if (['leecher', 'worker', 'master'].includes(this.role)) {
                 this.ipfs = new ipfs.ipfs(resources, meta);
                 this.ipget = new ipget.ipget(resources, meta);
@@ -51,6 +51,9 @@ export class IpfsKit {
                 this.ipfsClusterCtl = new IpfsClusterCtl.IPFSClusterCtl(resources, meta);
                 this.ipfsClusterService = new IpfsClusterService.IpfsClusterService(resources, meta);
             }
+        }
+        else{
+            this.role = 'leecher';
         }
     }
 
@@ -487,7 +490,7 @@ export class IpfsKit {
 
     async ipfsSetConfig(newConfig, kwargs = {}) {
         const filename = path.join(os.tmpdir(), `${Date.now()}.json`);
-        await fs.writeFile(filename, JSON.stringify(newConfig));
+        fs.writeFileSync(filename, JSON.stringify(newConfig));
 
         const command = "ipfs config replace " + filename;
         let results = "";

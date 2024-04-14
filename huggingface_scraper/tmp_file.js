@@ -10,7 +10,7 @@ export class TempFileManager {
         this.createTempFile = this.createTempFile.bind(this);
     }
 
-    createTempFile({ postfix, dir, }) {
+    async createTempFile({ postfix, dir, }) {
         const randomString = crypto.randomBytes(12).toString('hex');
         const tempFileName = `${randomString}.${postfix}`;
         const tempFilePath = path.join(dir, tempFileName);
@@ -22,7 +22,7 @@ export class TempFileManager {
         return (results);
     }
 
-    createTempDirectory({ dir }) {
+    async createTempDirectory({ dir }) {
         const randomString = crypto.randomBytes(12).toString('hex');
         const tempDirectoryName = `${randomString}`;
         const tempDirectoryPath = path.join(dir, tempDirectoryName);

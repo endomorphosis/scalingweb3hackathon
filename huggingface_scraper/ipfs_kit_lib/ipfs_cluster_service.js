@@ -17,7 +17,7 @@ export class IpfsClusterService {
         }
     }
 
-    test_ipfs_cluster_service() {
+    async test_ipfs_cluster_service() {
         let detect;
         try {
             detect = execSync('which ipfs-cluster-service').toString();
@@ -39,14 +39,15 @@ export class IpfsClusterService {
         return results;
     }
 
-    ipfs_cluster_service_status() {
+    async ipfs_cluster_service_status() {
         const command = "ipfs-cluster-service status";
         const results = execSync(command).toString();
         return results;
     }
 }
-function main(){
+
+async function main(){
     const thisIpfsClusterService = new IpfsClusterService();
-    const results = thisIpfsClusterService.test_ipfs_cluster_service();
+    const results = await thisIpfsClusterService.test_ipfs_cluster_service();
     console.log(results);
 }
