@@ -124,7 +124,7 @@ class ModelManager {
             fs.mkdirSync(this.localPath, { recursive: true });
         }
         let ipfsPathFiles = fs.readdirSync(ipfsPath);
-        if (!homeDirFiles.includes('.ipfs') && !ipfsPathFiles.includes('ipfs') && fs.existsSync(ipfsPath)) {
+        if (!ipfsPathFiles.includes('ipfs') || !fs.existsSync(ipfsPath)) {
             this.installIpfs.installIpfsDaemon();
             this.installIpfs.installIpget();
             let stats = this.testFio.stats(this.ipfsPath);
@@ -132,7 +132,8 @@ class ModelManager {
                 diskStats: stats,
                 ipfsPath: this.ipfsPath,
             });
-        } else if (this.role === "master" && !homeDirFiles.includes('.ipfs-cluster-service')) {
+        }            
+        if (this.role === "master" && !homeDirFiles.includes('.ipfs-cluster-service')) {
             this.installIpfs.installIPFSClusterService();
             this.installIpfs.installIPFSClusterCtl();
             this.installIpfs.configIPFSClusterService();
@@ -147,10 +148,15 @@ class ModelManager {
         this.ipfsKit.ipfsKitStop();
         this.ipfsKit.ipfsKitStart();
         let executeReady = false;
-        while (!executeReady) {
+        while (executeReady != true) {
             try {
                 let readyIpfsKit = this.ipfsKit.ipfsKitReady();
-                executeReady = readyIpfsKit;
+                if (Object.keys(readyIpfsKit).every(k => readyIpfsKit[k] === true) || readyIpfsKit === true){
+                    executeReady = true
+                }
+                else{
+                    executeReady = false
+                }
             } catch (e) {
                 executeReady = e.toString();
             }
@@ -311,7 +317,8 @@ class ModelManager {
                     } else {  
                         let tmpFilename = path.split("/").pop();
                         let command = `aria2c -x 16 ${httpsSrc} -d /tmp -o ${tmpFilename} --allow-overwrite=true`;          
-                        await execsync(command).then(() => {
+                        await execsync(command).then((results) => {
+                            console.log(results)
                             resolve({ name: path, fd, removeCallback: cleanupCallback });
                         }).catch((e) => {
                             console.log(e);
@@ -744,7 +751,7 @@ class ModelManager {
             //     await moveFile("./collection.json/collection.json", "/tmp/collection.json");
             //     await rimraf("./collection.json");
             // }
-            if (fs.existsSync(cache.https)) {
+            if (fs.existsSync(https_collection)) {
                 let data = await fs.readFileSync(cache.https, 'utf8');
                 this.https_collection = JSON.parse(data);
             } else if (fs.existsSync('/tmp/collection.json')) {
@@ -1735,10 +1742,10 @@ class ModelManager {
 
 }
 
-const endpoint = "https://object.ord1.coreweave.com";
-const access_key = "OVEXCZJJQPUGXZOV";
-const secret_key = "H1osbJRy3903PTMqyOAGD6MIohi4wLXGscnvMEduh10";
-const host_bucket = "%(bucket)s.object.ord1.coreweave.com";
+const endpoint = "https://object.ord1.coreweave.com"
+const access_key = "CWVFBNRZEEDYTAUM"
+const secret_key = "cwoBNj1ILmRGxcm18EsWE5Qth4hVtmtNJPkLVW2AETU"
+const host_bucket = "%(bucket)s.object.ord1.coreweave.com"
 const bucket = "cloudkit-beta";
 const ipfs_src = "QmXBUkLywjKGTWNDMgxknk6FJEYu9fZaEepv3djmnEqEqD";
 const s3cfg = {

@@ -56,6 +56,7 @@ export class ipfs {
                 const command1 = "systemctl start ipfs";
                 exec(command1, (error, stdout, stderr) => {
                     if (error) {
+                        console.log(`Error starting ipfs: ${error.message}`);
                         results1 = error.message;
                     } else {
                         results1 = stdout;
@@ -76,12 +77,17 @@ export class ipfs {
         // Run this if user is not root or root user fails check if it passes
         if (os.userInfo().uid !== 0 || ipfs_ready === false) {
             try {
-                const command2 = `export IPFS_PATH=${this.ipfsPath}ipfs/ && ipfs daemon --enable-gc --enable-pubsub-experiment`;
-                const subprocess = spawn(command2, { shell: true, stdio: 'pipe' });
-                subprocess.stdout.on('data', (data) => {
-                    results2 = data.toString();
+                const command2 = `export IPFS_PATH=${path.resolve(path.join(this.ipfsPath,"ipfs"))} && ipfs daemon --enable-gc --enable-pubsub-experiment`;
+                //const execute2 = execSync(command2);
+                const execute2 = exec(command2, (error, stdout, stderr) => {
+                    if (error) {
+                        console.log(`Error starting ipfs: ${error.message}`);
+                        results1 = error.message;
+                    }
                 });
+                //results2 = execute2.toString();
             } catch (error) {
+                console.log(`Error starting ipfs: ${error.message}`);
                 results2 = error.message;
             }
         }

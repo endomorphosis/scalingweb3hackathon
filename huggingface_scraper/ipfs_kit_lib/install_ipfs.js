@@ -97,15 +97,14 @@ export class InstallIPFS {
         }
     }
 
-    async installIPFSClusterFollow() {
+    installIPFSClusterFollow() {
         // Check if ipfs-cluster-follow is already installed
-        exec('which ipfs-cluster-follow', (error, stdout, stderr) => {
+        execSync('which ipfs-cluster-follow', (error, stdout, stderr) => {
             if (!error && stdout) {
                 console.log('ipfs-cluster-follow is already installed.');
                 return true;
             } else {
                 console.log('ipfs-cluster-follow is not installed, proceeding with installation.');
-    
                 // Downloading tarball
                 const url = 'https://dist.ipfs.tech/ipfs-cluster-follow/v1.0.8/ipfs-cluster-follow_v1.0.8_linux-amd64.tar.gz';
                 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipfs-cluster-follow-'));
@@ -405,7 +404,7 @@ export class InstallIPFS {
         };
     }
 
-    async configIPFSClusterFollow(options = {}) {
+    configIPFSClusterFollow(options = {}) {
         let clusterName = options.cluster_name || this.cluster_name;
         let diskStats = options.disk_stats || this.disk_stats;
         let ipfsPath = options.ipfs_path || this.ipfsPath;
@@ -418,13 +417,16 @@ export class InstallIPFS {
         // this.run_ipfs_daemon();
         if (clusterName && ipfsPath && diskStats) {
             try {
+                let followPath = path.join(homeDir, ".ipfs-cluster-follow", clusterName);
+                let rm_command = `rm -rf ${followPath}`;
+                execSync(rm_command);
                 let command1 = `ipfs-cluster-follow ${clusterName} init ${ipfsPath}`;
-                let results1 = execSync(command1).toString();
+                let results1 = execSync(command1)
+                results1 = results1.toString();
 
                 let thisDir = process.cwd();
                 let clusterPath = path.join(ipfsPath, clusterName);
                 let homeDir = os.homedir();
-                let followPath = path.join(homeDir, ".ipfs-cluster-follow", clusterName);
 
                 if (!fs.existsSync(clusterPath)) {
                     fs.mkdirSync(clusterPath, { recursive: true });

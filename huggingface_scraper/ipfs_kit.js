@@ -124,8 +124,7 @@ export class IpfsKit {
         }
     }
 
-
-    async ipfsKitReady(kwargs = {}) {
+    ipfsKitReady(kwargs = {}) {
         let cluster_name;
         if (kwargs.cluster_name) {
             cluster_name = kwargs.cluster_name;
@@ -140,15 +139,14 @@ export class IpfsKit {
         let ipfs_cluster_ready = false;
     
         const command1 = "ps -ef | grep ipfs | grep daemon | grep -v grep | wc -l";
-        const execute1 = await new Promise((resolve, reject) => {
-            exec(command1, (error, stdout, stderr) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(stdout.trim());
-                }
-            });
-        });
+        const execute1 = execSync(command1, (error, stdout, stderr) => {
+            if (error) {
+                console.log("command failed " + error);
+                reject(error);
+            } else {
+                resolve(stdout.trim());
+            }
+        }).toString().trim();
     
         if (parseInt(execute1) > 0) {
             ipfs_ready = true;
@@ -156,7 +154,8 @@ export class IpfsKit {
     
         if (this.role === "master") {
             return this.ipfsClusterService.ipfsClusterServiceReady();
-        } else if (this.role === "worker") {
+        } 
+        else if (this.role === "worker") {
             const data_ipfs_follow = this.ipfsClusterFollow.ipfsFollowInfo();
             if (data_ipfs_follow.cluster_peer_online && data_ipfs_follow.ipfs_peer_online) {
                 if (data_ipfs_follow.cluster_name === cluster_name) {
@@ -393,11 +392,13 @@ export class IpfsKit {
             try {
                 ipfsClusterService = await this.ipfsClusterService.ipfs_cluster_service_stop();
             } catch (e) {
+                console.log(e)
                 ipfsClusterService = e.toString();
             }
             try {
                 ipfs = await this.ipfs.daemon_stop();
             } catch (e) {
+                console.log(e)
                 ipfs = e.toString();
             }
         }
@@ -405,11 +406,13 @@ export class IpfsKit {
             try {
                 ipfsClusterFollow = await this.ipfsClusterFollow.ipfsFollowStop();
             } catch (e) {
+                console.log(e);
                 ipfsClusterFollow = e.toString();
             }
             try {
                 ipfs = await this.ipfs.daemon_stop();
             } catch (e) {
+                console.log(e);
                 ipfs = e.toString();
             }
         }
@@ -417,15 +420,17 @@ export class IpfsKit {
             try {
                 ipfs = await this.ipfs.daemon_stop();
             } catch (e) {
+                console.log(e);
                 ipfs = e.toString();
             }
         }
     
-        return {
+        let results = {
             "ipfs_cluster_service": ipfsClusterService,
             "ipfs_cluster_follow": ipfsClusterFollow,
             "ipfs": ipfs
         };
+        return results;
     }
     
     async ipfsKitStart(kwargs = {}) {
@@ -437,6 +442,7 @@ export class IpfsKit {
             try {
                 ipfs = await this.ipfs.daemon_start();
             } catch (e) {
+                console.log(e)
                 ipfs = e.toString();
             }
             try {
@@ -445,31 +451,37 @@ export class IpfsKit {
                 ipfsClusterService = e.toString();
             }
         }
+
         if (this.role === "worker") {
             try {
-                ipfs = await this.ipfs.daemon_start();
+                ipfs = this.ipfs.daemon_start();
             } catch (e) {
+                console.log(e);
                 ipfs = e.toString();
             }
             try {
                 ipfsClusterFollow = await this.ipfsClusterFollow.ipfsFollowStart();
             } catch (e) {
+                console.log(e);
                 ipfsClusterFollow = e.toString();
             }
         }
+
         if (this.role === "leecher") {
             try {
                 ipfs = await this.ipfs.daemon_start();
             } catch (e) {
+                console.log(e);
                 ipfs = e.toString();
             }
         }
     
-        return {
+        let results = {
             "ipfs_cluster_service": ipfsClusterService,
             "ipfs_cluster_follow": ipfsClusterFollow,
             "ipfs": ipfs
         };
+        return results;
     }
 
     async ipfsGetConfig(kwargs = {}) {

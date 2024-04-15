@@ -131,10 +131,10 @@ export class TestFio {
 
 }
 
-function main(){
+function test(){
     const thisTest = new TestFio(null);
     const results = thisTest.test("/tmp/");
     console.log(results);
     console.log("Test complete");
-    process.exit(0);
+    //process.exit(0);
 }

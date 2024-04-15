@@ -1,4 +1,8 @@
 import { execSync, exec } from 'child_process';
+import os from 'os';
+import path, { parse } from 'path';
+import fs from 'fs';
+import * as install_ipfs from './install_ipfs.js';
 
 export class IPFSClusterFollow {
     constructor(resources, meta) {
@@ -16,6 +20,10 @@ export class IPFSClusterFollow {
             this.role = meta.role;
         } else if (meta.role) {
             throw new Error("role is not either master, worker, leecher");
+        }
+
+        if (meta.ipfs_path) {
+            this.ipfsPath = meta.ipfs_path;
         }
 
         if (meta.cluster_name) {
@@ -62,6 +70,20 @@ export class IPFSClusterFollow {
                 const process = exec(commandRun, (error, stdout, stderr) => {
                     if (error) {
                         console.error(`Error running ipfs-cluster-follow: ${error.message}`);
+                        if (error.message.includes("command not found")){
+                            let InstallIPFS = new install_ipfs.InstallIPFS();
+                            let installResults = InstallIPFS.installIPFSClusterFollow();
+                            let configResults = InstallIPFS.configIPFSClusterFollow();
+                            console.log(`Install IPFS Cluster Follow results: ${installResults}`);
+                            console.log(`Configure IPFS Cluster Follow results: ${configResults}`);
+                            console.log(`Attempting to run ipfs-cluster-follow again`);
+                            exec(commandRun, (error, stdout, stderr) => {
+                                if (error) {
+                                    console.error(`Error running ipfs-cluster-follow: ${error.message}`);
+                                }
+                                console.log(`ipfs-cluster-follow output: ${stdout}`);
+                            });
+                        }
                         return;
                     }
                     console.log(`ipfs-cluster-follow output: ${stdout}`);
@@ -85,16 +107,25 @@ export class IPFSClusterFollow {
                 const systemctlStop = execSync("systemctl stop ipfs-cluster-follow").toString();
                 results.systemctl = systemctlStop;
             } catch (error) {
+                console.log(`Error stopping ipfs-cluster-follow: ${error.message}`)
                 results.systemctl = `Error: ${error.message}`;
             }
         }
         if (os.userInfo().uid != 0 || results.systemctl.includes('Error')){
             try {
                 // Forcefully kill the ipfs-cluster-follow process if it's still running
-                const killCommand = "ps -ef | grep ipfs-cluster-follow | grep -v grep | awk '{print $2}' | xargs kill -9";
-                const killResults = execSync(killCommand).toString();
-                results.bash = killResults;
+                const listCommand = "ps -ef | grep ipfs-cluster-follow | grep -v grep | wc -l";
+                const listResults = execSync(listCommand).toString().trim();
+                if (parseInt(listResults) > 0) {              
+                    const killCommand = "ps -ef | grep ipfs-cluster-follow | grep -v grep | awk '{print $2}' | xargs kill -9";
+                    const killResults = execSync(killCommand).toString();
+                    results.bash = killResults;
+                }
+                else{
+                    results.bash = "No ipfs-cluster-follow process found to kill";
+                }
             } catch (error) {
+                console.log(`Error killing ipfs-cluster-follow: ${error.message}`)
                 results.bash = `Error: ${error.message}`;
             }
         }
@@ -106,9 +137,11 @@ export class IPFSClusterFollow {
                 fs.unlinkSync(apiSocketPath);
                 results['api-socket'] = 'Removed api-socket';
             } else {
-                results['api-socket'] = 'api-socket not found';
+                //console.log("api-socket not found, deleting not necessary");
+                results['api-socket'] = 'api-socket not found, deleting not necessary';
             }
         } catch (error) {
+            console.error(`Error removing api-socket: ${error.message}`);
             results['api-socket'] = `Error removing api-socket: ${error.message}`;
         }
 
@@ -149,7 +182,7 @@ export class IPFSClusterFollow {
     }
 
 
-    async ipfsFollowInfo(kwargs = {}) {
+    ipfsFollowInfo(kwargs = {}) {
         let clusterName = this.clusterName;
         let resultsDict = {};
 
@@ -168,6 +201,15 @@ export class IPFSClusterFollow {
             }
         } catch (error) {
             console.error(`Error executing ipfs-cluster-follow info: ${error.message}`);
+            if (error.message.includes("500")){
+                let InstallIPFS = new install_ipfs.InstallIPFS(undefined, { role: 'leecher', cluster_name: clusterName, ipfs_path: this.ipfsPath });
+                let installResults = InstallIPFS.installIPFSClusterFollow();
+                let configResults = InstallIPFS.configIPFSClusterFollow();
+                console.log(`Install IPFS Cluster Follow results: ${installResults}`);
+                console.log(`Configure IPFS Cluster Follow results: ${configResults}`);
+                console.log(`Attempting to run ipfs-cluster-follow info again`);
+                execSync(command, { encoding: 'utf8' });
+            }
         }
 
         return resultsDict;

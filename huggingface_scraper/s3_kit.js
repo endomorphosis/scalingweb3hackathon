@@ -31,6 +31,7 @@ export class S3Kit {
 				}
 			}
 		}
+		this.s3 = new AWS.S3(this.config);
 	}
 
 	call(method, kwargs) {
@@ -612,7 +613,6 @@ export class S3Kit {
 		}
 	}
 
-
 	async test() {
 		const endpoint = "https://object.ord1.coreweave.com";
 		const accessKey = "OVEXCZJJQPUGXZOV";
@@ -630,7 +630,7 @@ export class S3Kit {
 			Bucket: bucket,
 			Prefix: dir
 		};
-		const data = await s3.listObjectsV2(params).promise();
+		const data = await thiss3.listObjectsV2(params).promise();
 		const directory = {};
 		data.Contents.forEach((obj) => {
 			directory[obj.Key] = {
@@ -703,4 +703,4 @@ async function main() {
 		await testThis.test3();
 }
 
-main();
+//main();
