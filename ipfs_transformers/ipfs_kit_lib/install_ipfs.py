@@ -55,7 +55,6 @@ Group=root
 
 [Install]
 WantedBy=multi-user.target
-
 """
 
 
@@ -462,10 +461,17 @@ class install_ipfs:
 			finally:
 				pass
 			try:
-				command5 = " ipfs-cluster-service daemon"
+				command5 = "systemctl enable ipfs-cluster-service"
 				results5 = subprocess.Popen(command5, shell=True)
 			except Exception as e:
 				results5 = str(e)
+			finally:
+				pass
+			try:
+				command6 = "systemctl daemon-reload"
+				results6 = subprocess.Popen(command6, shell=True)
+			except Exception as e:
+				results6 = str(e)
 			finally:
 				pass
 			return {
