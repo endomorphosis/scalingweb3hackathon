@@ -4,14 +4,15 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import * as test_fio from './test_fio.js';
-import { exec } from 'child_process';
 import util from 'util';
+import process from 'process';
 
 export class InstallIPFS {
     constructor(resources, meta = null) {
         this.resources = resources;
         this.meta = meta;
         this.ipfsTestInstall = this.ipfsTestInstall.bind(this);
+        this.env = process.env;
         if (meta !== null) {
             this.config = meta.config ? meta.config : null;
 
@@ -24,26 +25,37 @@ export class InstallIPFS {
                 this.role = "leecher";
             }
 
-            if (meta.ipfs_path) {
-                this.ipfsPath = meta.ipfs_path;
+            if (meta.ipfsPath) {
+                this.ipfsPath = meta.ipfsPath;
                 if (!fs.existsSync(this.ipfsPath)) {
                     fs.mkdirSync(this.ipfsPath, { recursive: true });
                 }
                 let testDisk = new test_fio.TestFio();
-                this.disk_name = testDisk.disk_device_name_from_location(this.ipfsPath);
-                this.disk_stats = {
-                    disk_size: testDisk.disk_device_total_capacity(this.disk_name),
-                    disk_used: testDisk.disk_device_used_capacity(this.disk_name),
-                    disk_avail: testDisk.disk_device_avail_capacity(this.disk_name),
-                    disk_name: this.disk_name
+                this.diskName = testDisk.disk_device_name_from_location(this.ipfsPath);
+                this.diskStats = {
+                    disk_size: testDisk.disk_device_total_capacity(this.diskName),
+                    disk_used: testDisk.disk_device_used_capacity(this.diskName),
+                    disk_avail: testDisk.disk_device_avail_capacity(this.diskName),
+                    disk_name: this.diskName
                 };
             } else {
-                this.ipfsPath = null;
-                this.disk_stats = null;
+                if (os.userInfo().username === "root") {
+                    this.ipfsPath = "/root/ipfs";
+                } else {
+                    this.ipfsPath = path.join(path.join(os.homedir(),".cache"), "ipfs");
+                }
+                let testDisk = new test_fio.TestFio();
+                this.diskName = testDisk.disk_device_name_from_location(this.ipfsPath);
+                this.diskStats = {
+                    disk_size: testDisk.disk_device_total_capacity(this.diskName),
+                    disk_used: testDisk.disk_device_used_capacity(this.diskName),
+                    disk_avail: testDisk.disk_device_avail_capacity(this.diskName),
+                    disk_name: this.diskName
+                };
             }
 
-            this.cluster_name = meta.cluster_name ? meta.cluster_name : null;
-            this.cluster_location = meta.cluster_location ? meta.cluster_location : "/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv";
+            this.clusterName = meta.clusterName ? meta.clusterName : null;
+            this.clusterLocation = meta.clusterLocation ? meta.clusterLocation : "/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv";
 
             if (['leecher', 'worker', 'master'].includes(this.role) && this.ipfsPath) {
                 // Bind the methods for installing and configuring IPFS
@@ -53,16 +65,16 @@ export class InstallIPFS {
 
             if (this.role === "worker" && this.cluster_name && this.ipfsPath) {
                 // Bind methods for worker role
-                this.cluster_install = this.installIPFSClusterFollow.bind(this);
-                this.cluster_config = this.configIPFSClusterFollow.bind(this);
+                this.clusterInstall = this.installIPFSClusterFollow.bind(this);
+                this.clusterConfig = this.configIPFSClusterFollow.bind(this);
             }
 
             if (this.role === "master" && this.cluster_name && this.ipfsPath) {
                 // Bind methods for master role
-                this.cluster_ctl_install = this.installIPFSClusterCtl.bind(this);
-                this.cluster_ctl_config = this.configIPFSClusterCtl.bind(this);
-                this.cluster_service_install = this.installIPFSClusterService.bind(this);
-                this.cluster_service_config = this.configIPFSClusterService.bind(this);
+                this.clusterCtlInstall = this.installIPFSClusterCtl.bind(this);
+                this.clusterCtlConfig = this.configIPFSClusterCtl.bind(this);
+                this.clusterService_install = this.installIPFSClusterService.bind(this);
+                this.clusterServiceConfig = this.configIPFSClusterService.bind(this);
             }
         }
     }
@@ -130,8 +142,8 @@ export class InstallIPFS {
                                 // Verify installation
                                 const version = execSync('ipfs-cluster-follow --version').toString().trim();
                                 console.log(`Installed ipfs-cluster-follow version: ${version}`);
-                                if (os.geteuid() === 0) {
-                                    let serviceConfig = fs.readFileSync(path.join(process.cwd(), 'ipfs_cluster_follow.service')).toString();
+                                if (os.userInfo().username == "root") {
+                                    let serviceConfig = fs.readFileSync(path.join(process.cwd(), 'ipfs_clusterFollow.service')).toString();
                                     fs.writeFileSync('/etc/systemd/system/ipfs-cluster-follow.service', serviceConfig);
                                     execSync('systemctl enable ipfs-cluster-follow');
                                     console.log('ipfs-cluster-follow service enabled.');
@@ -240,9 +252,9 @@ export class InstallIPFS {
                         const version = execSync('ipfs-cluster-service --version').toString().trim();
                         console.log(`Installed ipfs-cluster-service version: ${version}`);
                         // if root user, write and enable systemd service
-                        if (os.geteuid() === 0) {
-                            // Assuming ipfs_cluster_service is the content of your service file
-                            let  serviceContent = fs.readFileSync(path.join(process.cwd(), 'ipfs_cluster_service.service')).toString()
+                        if (os.userInfo().username == "root") {
+                            // Assuming ipfs_clusterService is the content of your service file
+                            let  serviceContent = fs.readFileSync(path.join(process.cwd(), 'ipfs_clusterService.service')).toString()
                             fs.writeFileSync('/etc/systemd/system/ipfs-cluster-service.service', serviceContent);
                             execSync('systemctl enable ipfs-cluster-service');
                             console.log('ipfs-cluster-service service enabled.');
@@ -302,7 +314,7 @@ export class InstallIPFS {
                     console.log('Extracted ipget.');
     
                     // Move to bin and install
-                    if (os.geteuid() === 0) {
+                    if (os.userInfo().username == "root") {
                         const binPath = path.join(tmpDir, 'ipget', 'ipget');
                         execSync(`sudo mv ${binPath} /usr/local/bin/ipget`);
                         const installScriptPath = path.join(tmpDir, 'ipget', 'install.sh');
@@ -337,18 +349,18 @@ export class InstallIPFS {
     
     async configIPFSClusterService(options = {}) {
         let clusterName = options.cluster_name || this.cluster_name;
-        let diskStats = options.disk_stats || this.disk_stats;
-        let ipfsPath = options.ipfs_path || this.ipfsPath;
+        let diskStats = options.diskStats || this.diskStats;
+        let ipfsPath = options.ipfsPath || this.ipfsPath;
         try{
         // Validate required parameters
             if (os.getuid() === 0) {
                 const command0 = "systemctl enable ipfs-cluster-service";
                 const results0 = execSync(command0, { shell: true });
-                const command1 = `IPFS_PATH=${ipfs_path} ipfs-cluster-service init -f`;
+                const command1 = `ipfsPath=${ipfsPath} ipfs-cluster-service init -f`;
                 const results1 = execSync(command1, { shell: true });
                 results1 = results1.toString();
             } else {
-                const command1 = `IPFS_PATH=${ipfs_path} ipfs-cluster-service init -f`;
+                const command1 = `ipfsPath=${ipfsPath} ipfs-cluster-service init -f`;
                 const results1 = execSync(command1, { shell: true });
                 results1 = results1.toString();
             }
@@ -364,14 +376,14 @@ export class InstallIPFS {
 
     async configIPFSClusterCtl(options = {}) {
         let clusterName = options.cluster_name || this.cluster_name;
-        let diskStats = options.disk_stats || this.disk_stats;
-        let ipfsPath = options.ipfs_path || this.ipfsPath;
+        let diskStats = options.diskStats || this.diskStats;
+        let ipfsPath = options.ipfsPath || this.ipfsPath;
 
-        if (!diskStats) throw new Error("disk_stats is None");
-        if (!ipfsPath) throw new Error("ipfs_path is None");
+        if (!diskStats) throw new Error("diskStats is None");
+        if (!ipfsPath) throw new Error("ipfsPath is None");
 
         this.cluster_name = clusterName;
-        this.disk_stats = diskStats;
+        this.diskStats = diskStats;
         this.ipfsPath = ipfsPath;
 
         let results1;
@@ -419,11 +431,11 @@ export class InstallIPFS {
 
     configIPFSClusterFollow(options = {}) {
         let clusterName = options.cluster_name || this.cluster_name;
-        let diskStats = options.disk_stats || this.disk_stats;
-        let ipfsPath = options.ipfs_path || this.ipfsPath;
+        let diskStats = options.diskStats || this.diskStats;
+        let ipfsPath = options.ipfsPath || this.ipfsPath;
 
-        if (!diskStats) throw new Error("disk_stats is None");
-        if (!ipfsPath) throw new Error("ipfs_path is None");
+        if (!diskStats) throw new Error("diskStats is None");
+        if (!ipfsPath) throw new Error("ipfsPath is None");
 
         ipfsPath = path.join(ipfsPath, "ipfs_cluster");
         // Assuming run_ipfs_daemon is implemented elsewhere
@@ -451,9 +463,9 @@ export class InstallIPFS {
                 // Copy the service and peerstore files
                 fs.copyFileSync(path.join(thisDir, 'service_follower.json'), path.join(followPath, 'service.json'));
                 fs.copyFileSync(path.join(thisDir, 'peerstore'), path.join(followPath, 'peerstore'));
-                new_ipfs_cluster_follow = ipfs_cluster_follow.replace("run"," "+ cluster_name + " run")
+                new_ipfs_clusterFollow = ipfs_clusterFollow.replace("run"," "+ cluster_name + " run")
 
-                if (os.geteuid() == 0) {
+                if (os.userInfo().username == "root") {
                     original_service = fs.readFileSync("/etc/systemd/system/ipfs-cluster-follow.service").toString()
                     new_service = original_service.replace("ExecStart=/usr/local/bin/ipfs-cluster-follow run","ExecStart=/usr/local/bin/ipfs-cluster-follow "+ cluster_name + " run")
                     fs.writeFileSync("/etc/systemd/system/ipfs-cluster-follow.service", new_service)
@@ -489,11 +501,11 @@ export class InstallIPFS {
     }
 
     async configIPFS(options = {}) {
-        let diskStats = options.disk_stats || this.disk_stats;
-        let ipfsPath = options.ipfs_path || this.ipfsPath;
+        let diskStats = options.diskStats || this.diskStats;
+        let ipfsPath = options.ipfsPath || this.ipfsPath;
 
-        if (!diskStats) throw new Error("disk_stats is None");
-        if (!ipfsPath) throw new Error("ipfs_path is None");
+        if (!diskStats) throw new Error("diskStats is None");
+        if (!ipfsPath) throw new Error("ipfsPath is None");
 
         ipfsPath = path.join(ipfsPath, "ipfs");
         fs.mkdirSync(ipfsPath, { recursive: true });
@@ -514,16 +526,16 @@ export class InstallIPFS {
 
         if (diskStats && ipfsPath) {
             try {
-                execSync(`IPFS_PATH=${ipfsPath} ipfs init --profile=badgerds`);
-                let peerId = execSync(`IPFS_PATH=${ipfsPath} ipfs id`).toString();
-                execSync(`IPFS_PATH=${ipfsPath} ipfs config profile apply badgerds`);
+                execSync(`ipfsPath=${ipfsPath} ipfs init --profile=badgerds`);
+                let peerId = execSync(`ipfsPath=${ipfsPath} ipfs id`).toString();
+                execSync(`ipfsPath=${ipfsPath} ipfs config profile apply badgerds`);
 
                 // Calculate available disk space and adjust storage allocation
                 let diskAvailable = parseFloat(diskStats.disk_avail);
                 let minFreeSpace = 32 * 1024 * 1024 * 1024; // 32 GB
                 if (diskAvailable > minFreeSpace) {
                     let allocate = Math.ceil(((diskAvailable - minFreeSpace) * 0.8) / 1024 / 1024 / 1024);
-                    execSync(`IPFS_PATH=${ipfsPath} ipfs config Datastore.StorageMax ${allocate}GB`);
+                    execSync(`ipfsPath=${ipfsPath} ipfs config Datastore.StorageMax ${allocate}GB`);
                 }
 
                 // Load peer list and add to bootstrap
@@ -532,26 +544,26 @@ export class InstallIPFS {
                     let peerList = fs.readFileSync(peerListPath).toString().split("\n");
                     peerList.forEach(peer => {
                         if (peer) {
-                            execSync(`IPFS_PATH=${ipfsPath} ipfs bootstrap add ${peer}`);
+                            execSync(`ipfsPath=${ipfsPath} ipfs bootstrap add ${peer}`);
                         }
                     });
                 }
 
                 //Assuming ipfs_service_text contains the systemd service configuration
-                if (os.geteuid() === 0) {
+                if (os.userInfo().username == "root") {
                     const original_service = fs.readFileSync("/etc/systemd/system/ipfs.service").toString();
-                    const new_service_text = original_service.replace("ExecStart=","ExecStart= bash -c \"export IPFS_PATH="+ ipfs_path + " && ");
+                    const new_service_text = original_service.replace("ExecStart=","ExecStart= bash -c \"export ipfsPath="+ ipfsPath + " && ");
                     fs.writeFileSync("/etc/systemd/system/ipfs.service", new_service_text);
                 }
 
-                results.config = execSync(`IPFS_PATH=${ipfsPath} ipfs config show`).toString();
+                results.config = execSync(`ipfsPath=${ipfsPath} ipfs config show`).toString();
                 results.identity = peerId.match(/"ID":\s?"([^"]+)"/)[1];
                 results.public_key = peerId.match(/"PublicKey":\s?"([^"]+)"/)[1];
             } catch (error) {
                 console.error('Error configuring IPFS:', error);
             }
         }
-        if (os.geteuid() === 0) {
+        if (os.userInfo().username == "root") {
             try {
                 // Reload daemon
                 let command1 = "systemctl daemon-reload";
@@ -571,20 +583,20 @@ export class InstallIPFS {
 
                 if (parseInt(results3) > 0) {
                     // Downloads image from ipfs as a test
-                    let command5 = `bash -c "export IPFS_PATH=${ipfs_path} && ipfs cat /ipfs/QmSgvgwxZGaBLqkGyWemEDqikCqU52XxsYLKtdy3vGZ8uq > ${ipfs_path}/test.jpg"`;
+                    let command5 = `bash -c "export ipfsPath=${ipfsPath} && ipfs cat /ipfs/QmSgvgwxZGaBLqkGyWemEDqikCqU52XxsYLKtdy3vGZ8uq > ${ipfsPath}/test.jpg"`;
                     results5 = execSync(command5);
 
                     // Time out for 2 seconds to allow the file to download
                     await new Promise(resolve => setTimeout(resolve, 5000));
 
-                    if (fs.existsSync(`${ipfs_path}/test.jpg`)) {
-                        if (fs.statSync(`${ipfs_path}/test.jpg`).size > 0) {
-                            fs.unlinkSync(`${ipfs_path}/test.jpg`);
+                    if (fs.existsSync(`${ipfsPath}/test.jpg`)) {
+                        if (fs.statSync(`${ipfsPath}/test.jpg`).size > 0) {
+                            fs.unlinkSync(`${ipfsPath}/test.jpg`);
                         } else {
                             throw new Error("ipfs failed to download test file");
                         }
 
-                        fs.unlinkSync(`${ipfs_path}/test.jpg`);
+                        fs.unlinkSync(`${ipfsPath}/test.jpg`);
                     }
                 } else {
                     throw new Error("ipfs failed to download test file");
@@ -600,20 +612,20 @@ export class InstallIPFS {
             console.log('You need to be root to write to /etc/systemd/system/ipfs.service');
             try{
                 // Start the daemon
-                let command7 = `bash -c "export IPFS_PATH=${ipfs_path} && ipfs cat /ipfs/QmSgvgwxZGaBLqkGyWemEDqikCqU52XxsYLKtdy3vGZ8uq > ${ipfs_path}/test.jpg"`;
+                let command7 = `bash -c "export ipfsPath=${ipfsPath} && ipfs cat /ipfs/QmSgvgwxZGaBLqkGyWemEDqikCqU52XxsYLKtdy3vGZ8uq > ${ipfsPath}/test.jpg"`;
                 results7 = execSync(command7);
 
                 // Time out for 2 seconds to allow the file to download
                 await new Promise(resolve => setTimeout(resolve, 5000));
 
-                if (fs.existsSync(`${ipfs_path}/test.jpg`)) {
-                    if (fs.statSync(`${ipfs_path}/test.jpg`).size > 0) {
-                        fs.unlinkSync(`${ipfs_path}/test.jpg`);
+                if (fs.existsSync(`${ipfsPath}/test.jpg`)) {
+                    if (fs.statSync(`${ipfsPath}/test.jpg`).size > 0) {
+                        fs.unlinkSync(`${ipfsPath}/test.jpg`);
                     } else {
                         throw new Error("ipfs failed to download test file");
                     }
 
-                    fs.unlinkSync(`${ipfs_path}/test.jpg`);
+                    fs.unlinkSync(`${ipfsPath}/test.jpg`);
                 }
         
             }
@@ -640,7 +652,7 @@ export class InstallIPFS {
     }
 
     async runIPFSClusterService(options = {}) {
-        let ipfsPath = options.ipfs_path || this.ipfsPath;
+        let ipfsPath = options.ipfsPath || this.ipfsPath;
         ipfsPath = path.join(ipfsPath, "ipfs");
         fs.mkdirSync(ipfsPath, { recursive: true });
 
@@ -663,7 +675,7 @@ export class InstallIPFS {
     }
 
     async runIPFSClusterCtl(options = {}) {
-        let ipfsPath = options.ipfs_path || this.ipfsPath;
+        let ipfsPath = options.ipfsPath || this.ipfsPath;
         ipfsPath = path.join(ipfsPath, "ipfs");
         fs.mkdirSync(ipfsPath, { recursive: true });
 
@@ -686,35 +698,45 @@ export class InstallIPFS {
     }
 
 
-  async ensureDirSync(dirPath) {
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
+    async ensureDirSync(dirPath) {
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
     }
-  }
 
-  async runIPFSClusterFollow() {
-    this.ensureDirSync(this.ipfsPath);
-    const command = "ipfs-cluster-follow";
-    const args = ["mycluster", "init", this.ipfsPath]; // Example, adjust as needed
-    const process = spawn(command, args, { env: { ...process.env, IPFS_PATH: this.ipfsPath } });
+    async runIPFSClusterFollow() {
+        this.ensureDirSync(this.ipfsPath);
+        const command = "ipfs-cluster-follow";
+        const args = ["mycluster", "init", this.ipfsPath]; // Example, adjust as needed
+        const env = { ...process.env, ipfsPath: this.ipfsPath };
+        const export_command = Object.entries(env).map(([key, value]) => `export ${key}=${value}`).join(" && ");
+        const process_command = export_command + command + " " + args.join(" ");
+        try {
+            const { stdout, stderr } = await exec(process_command);
+            console.log(stdout);
+            console.error(stderr);
+            return true;
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
-    process.stdout.on('data', data => console.log(data.toString()));
-    process.stderr.on('data', data => console.error(data.toString()));
-
-    return process;
-  }
-
-  async runIPFSDaemon() {
-    this.ensureDirSync(this.ipfsPath);
-    const command = "ipfs";
-    const args = ["daemon", "--enable-pubsub-experiment"];
-    const process = spawn(command, args, { env: { ...process.env, IPFS_PATH: this.ipfsPath } });
-
-    process.stdout.on('data', data => console.log(data.toString()));
-    process.stderr.on('data', data => console.error(data.toString()));
-
-    return process;
-  }
+    async runIPFSDaemon() {
+        this.ensureDirSync(this.ipfsPath);
+        const command = "ipfs";
+        const args = ["daemon", "--enable-pubsub-experiment"];
+        const env = { ...this.env, ipfsPath: this.ipfsPath };
+        const export_command = Object.entries(env).map(([key, value]) => `export ${key}=${value}`).join(" && ");
+        const process_command = export_command + command + " " + args.join(" ");
+        try {
+            const { stdout, stderr } = await exec(process_command);
+            console.log(stdout);
+            console.error(stderr);
+            return true;
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
   
     async killProcessByPattern(pattern) {
@@ -806,12 +828,12 @@ export class InstallIPFS {
         if (this.role === "master") {
             let clusterService = await this.installIPFSClusterService();
             let clusterCtl = await this.installIPFSClusterCtl();
-            results["cluster_service"] = clusterService;
-            results["cluster_ctl"] = clusterCtl;
+            results["clusterService"] = clusterService;
+            results["clusterCtl"] = clusterCtl;
         }
         if (this.role === "worker") {
             let clusterFollow = await this.installIPFSClusterFollow();
-            results["cluster_follow"] = clusterFollow;
+            results["clusterFollow"] = clusterFollow;
         }
         return results;
     }
@@ -826,12 +848,12 @@ export class InstallIPFS {
         if (this.role === "master") {
             let clusterServiceConfig = await this.configIPFSClusterService();
             let clusterCtlConfig = await this.configIPFSClusterCtl();
-            results["cluster_service_config"] = clusterServiceConfig.config;
-            results["cluster_ctl_config"] = clusterCtlConfig.config;
+            results["clusterServiceConfig"] = clusterServiceConfig.config;
+            results["clusterCtlConfig"] = clusterCtlConfig.config;
         }
         if (this.role === "worker") {
             let clusterFollowConfig = this.configIPFSClusterFollow();
-            results["cluster_follow_config"] = clusterFollowConfig.config;
+            results["clusterFollowConfig"] = clusterFollowConfig.config;
         }
         return results;
     }
@@ -883,38 +905,36 @@ export class InstallIPFS {
 
     async installAndConfigure() {
         let results = {};
+        let options = {diskStats: this.diskStats, ipfsPath: this.ipfsPath, clusterName: this.clusterName, clusterLocation: this.clusterLocation};
         try {
             if (['leecher', 'worker', 'master'].includes(this.role)) {
                 // Assuming these methods are implemented and properly handle async operations
                 this.installIPGet();
                 this.installIPFSDaemon();
-                const ipfsConfig = this.configIPFS();
-
+                const ipfsConfig = this.configIPFS(options)
                 results.ipfs = true; // Assuming installation success
                 results.ipfs_config = ipfsConfig;
                 this.runIPFSDaemon();
             }
             if (this.role === 'master') {
-                const clusterService = this.installIPFSClusterService();
-                const clusterCtl = this.installIPFSClusterCtl();
-                const clusterServiceConfig = this.configIPFSClusterService();
-                const clusterCtlConfig = this.configIPFSClusterCtl();
-
-                results.cluster_service = clusterService;
-                results.cluster_ctl = clusterCtl;
-                results.cluster_service_config = clusterServiceConfig;
-                results.cluster_ctl_config = clusterCtlConfig;
+                const clusterService = this.installIPFSClusterService(options);
+                const clusterCtl = this.installIPFSClusterCtl(options);
+                const clusterServiceConfig = this.configIPFSClusterService(options);
+                const clusterCtlConfig = this.configIPFSClusterCtl(options);
+                results.clusterService = clusterService;
+                results.clusterCtl = clusterCtl;
+                results.clusterServiceConfig = clusterServiceConfig;
+                results.clusterCtlConfig = clusterCtlConfig;
             }
             if (this.role === 'worker') {
-                const clusterFollow = this.installIPFSClusterFollow();
-                const clusterFollowConfig = this.configIPFSClusterFollow();
-
-                results.cluster_follow = clusterFollow;
-                results.cluster_follow_config = clusterFollowConfig;
+                const clusterFollow = this.installIPFSClusterFollow(options);
+                const clusterFollowConfig = this.configIPFSClusterFollow(options);
+                results.clusterFollow = clusterFollow;
+                results.clusterFollowConfig = clusterFollowConfig;
             }
 
             // Systemctl daemon reload
-            execAsync('systemctl daemon-reload');
+            exec('systemctl daemon-reload');
             results.systemctl_reload = true;
         } catch (error) {
             console.error('Error during installation and configuration:', error);
@@ -934,16 +954,15 @@ async function main(){
         clusterLocation: "/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv",
         // Alternative cluster location (commented out in the example)
         // clusterLocation: "/ip4/167.99.96.231/udp/4001/quic-v1/p2p/12D3KooWS9pEXDb2FEsDv9TH4HicZgwhZtthHtSdSfyKKDnkDu8D",
-        ipfsPath: "/home/kensix/.cache/ipfs/",
     };
 
     // Initialize the IPFS configuration manager with the provided metadata
-    const configManager = new IPFSConfigManager(meta.role, meta.clusterName, meta.ipfsPath);
+    const install_ipfs = new InstallIPFS(undefined, meta);
 
     // Execute the installation and configuration process
     async function runInstallationAndConfiguration() {
         try {
-            const results = await configManager.installAndConfigure();
+            const results = await install_ipfs.installAndConfigure();
             console.log('Installation and Configuration Results:', results);
         } catch (error) {
             console.error('An error occurred during the installation and configuration process:', error);
@@ -952,3 +971,5 @@ async function main(){
 
     await runInstallationAndConfiguration();
 }
+
+main();

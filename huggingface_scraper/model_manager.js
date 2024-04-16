@@ -58,7 +58,7 @@ class ModelManager {
             this.localPath = "/root/";
             localPath = this.localPath;
         } else {
-            this.localPath = "/home/" + username;
+            this.localPath = path.join(os.homeDir(), username);
             localPath = this.localPath;
         }
         if (meta !== null && typeof meta === 'object') {

@@ -505,7 +505,7 @@ class InstallIPFS {
                 }
 
                 // Assuming ipfs_service_text contains the systemd service configuration
-                // if (os.geteuid() === 0) {
+                // if (os.userInfo().username == "root") {
                 //     fs.writeFileSync("/etc/systemd/system/ipfs.service", ipfs_service_text);
                 // }
 

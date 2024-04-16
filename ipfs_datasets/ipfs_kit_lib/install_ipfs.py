@@ -217,7 +217,7 @@ class install_ipfs:
 				results = subprocess.check_output(command, shell=True)
 				results = results.decode()
 				
-				if os.geteuid() == 0:
+				if os.userInfo().username == "root":
 					with open("/etc/systemd/system/ipfs-cluster-follow.service", "w") as file:
 						file.write(ipfs_cluster_follow)
 				else:
@@ -285,7 +285,7 @@ class install_ipfs:
 				results = subprocess.check_output(command, shell=True)
 				results = results.decode()
 				
-				if os.geteuid() == 0:
+				if os.userInfo().username == "root":
 					with open("/etc/systemd/system/ipfs-cluster-service.service", "w") as file:
 						file.write(ipfs_cluster_service)
 
@@ -567,7 +567,7 @@ class install_ipfs:
 				pass
 			new_ipfs_cluster_follow = ipfs_cluster_follow.replace("run"," "+ cluster_name + " run")
 			
-			if os.geteuid() == 0:
+			if os.userInfo().username == "root":
 				with open("/etc/systemd/system/ipfs-cluster-follow.service", "w") as file:
 					file.write(new_ipfs_cluster_follow)
 			else:
@@ -687,7 +687,7 @@ class install_ipfs:
 			finally:
 				pass
 
-			if os.geteuid() == 0:
+			if os.userInfo().username == "root":
 				ipfs_service_text = ipfs_service.replace("ExecStart=","ExecStart= bash -c \"export IPFS_PATH="+ ipfs_path + " && ")
 				with open("/etc/systemd/system/ipfs.service", "w") as file:
 					file.write(ipfs_service_text)
