@@ -19,6 +19,9 @@ import hf_faster_whisper_add from './manifests/manifest_hf_faster_whisper.js'
 import hf_transformers_calc from './manifests/manifest_hf_transformers.js'
 import hf_transformers_add from './manifests/manifest_hf_transformers.js'
 import diffusion_calc from './manifests/manifest_diffusion.js'
+import diffusion_add from './manifests/manifest_diffusion.js'
+import dataset_calc from './manifests/manifest_dataset.js'
+import dataset_add from './manifests/manifest_dataset.js'
 import {complete, parse_templates, generate_test} from './utils.js'
 
 export class Generate_Manifest{
@@ -80,6 +83,9 @@ export class Generate_Manifest{
         else if (generation.skill == 'hf_t5'){
             results = hf_t5_add(this)
         }
+        else if (generation.skill == 'dataset'){
+            results = dataset_add(this)
+        }
         else{
             throw("skill is not defined")
         }
@@ -103,6 +109,7 @@ export class Generate_Manifest{
         console.log("7. whisper")
         console.log("8. hf_lm")
         console.log("9. hf_t5")
+        console.log("0. dataset")
         // request console input
         let prompt = prompt_sync(({
             history: prompt_sync_history(),
@@ -163,6 +170,10 @@ export class Generate_Manifest{
     
         if (model_type == 'custom'){
             results = custom_calc(this)
+        }
+
+        if (model_type == 'dataset'){
+            results = dataset_calc(this)
         }
 
         try{

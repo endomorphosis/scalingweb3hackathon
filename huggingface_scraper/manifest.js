@@ -106,6 +106,9 @@ export class Manifest{
         if (generate.skill == "custom"){
             return manifest_custom.custom_generate(generate)
         }
+        if (generate.skill == "dataset"){
+            return manifest_dataset.dataset_generate(generate)
+        }
     }
 
     import_from_hf(model){
@@ -126,6 +129,7 @@ export class Manifest{
             let knn = this_generator.knn
             let diffusion = this_generator.diffusion
             let api = this_generator.api
+            let dataset = this_generator.dataset
 
             let all_models = {}
             llama_cpp.forEach(model => all_models[model.modelName] = model)
@@ -137,6 +141,7 @@ export class Manifest{
             knn.forEach(model => all_models[model.modelName] = model)
             diffusion.forEach(model => all_models[model.modelName] = model)
             api.forEach(model => all_models[model.modelName] = model)
+            dataset.forEach(model => all_models[model.modelName] = model)
 
             if (model in all_models){
                 let this_generate = all_models[model]
@@ -185,6 +190,20 @@ export class Manifest{
         if (model == undefined){
             console.log("Importing / rebuilding all models from manifest definition .json files")
             console.log("This might take a while")
+            for (var generate in dataset){
+                let this_generate = dataset[generate]
+                let this_manifest = new manifest_dataset.Manifest_dataset()
+                this_manifest.main(this_generate)
+                let this_process = new process_manifest.process_manifest(
+                    s3_creds = this.s3_creds,
+                    hf_creds = this.hf_creds,
+                    mysql_creds = this.mysql_creds,
+                    local_model_path = this.local_model_path,
+                    collection_path = this.collection_path
+                )
+                this_process.main(this_generate, this_manifest)
+            }
+
             for (var generate in llama_cpp){
                 let this_generate = llama_cpp[generate]
                 let this_manifest =  new manifest_llama_cpp.Manifest_llama_cpp()
