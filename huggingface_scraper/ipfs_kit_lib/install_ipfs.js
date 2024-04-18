@@ -10,6 +10,8 @@ import { ChildProcess } from 'child_process';
 import { spawnSync } from 'child_process';
 import { spawn } from 'child_process';
 import { run } from 'shutil';
+import { randomUUID } from 'crypto';
+import crypto from 'crypto';
 
 export class InstallIPFS {
     constructor(resources, meta = null) {
@@ -24,6 +26,12 @@ export class InstallIPFS {
         this.ipfs_cluster_service_dist_tar = "https://dist.ipfs.tech/ipfs-cluster-service/v1.0.8/ipfs-cluster-service_v1.0.8_linux-amd64.tar.gz";
         if (meta !== null) {
             this.config = meta.config ? meta.config : null;
+            this.secret = meta.secret ? meta.secret : null;
+
+            if (this.secret == null) {
+                // generate 64 character hex string
+                this.secret = crypto.randomBytes(32).toString('hex');
+            }
 
             if (meta.role) {
                 this.role = meta.role;
@@ -99,6 +107,7 @@ export class InstallIPFS {
             console.error(e);
             detect = '';
         }
+        let thisDir = this.thisDir || path.dirname(new URL(import.meta.url).pathname);
 
         if (!detect) {
             try {
@@ -108,7 +117,7 @@ export class InstallIPFS {
                 execSync(`tar -xvzf ${tarFile} -C ${tmpDir}`);
                 execSync(`cd ${tmpDir}/kubo && sudo bash install.sh`);
                 const results = execSync("ipfs --version").toString().trim();
-                const serviceConfig = fs.readFileSync(path.join(process.cwd(), 'ipfs.service')).toString();
+                const serviceConfig = fs.readFileSync(path.join(thisDir, 'ipfs.service')).toString();
                 fs.writeFileSync("/etc/systemd/system/ipfs.service", serviceConfig);
                 execSync("systemctl enable ipfs");
                 return results.includes("ipfs");
@@ -131,6 +140,7 @@ export class InstallIPFS {
             const url = this.ipfs_follow_dist_tar;
             const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipfs-cluster-follow-'));
             const tarPath = path.join(tmpDir, url.split('/')[-1]);
+            let thisDir = this.thisDir || path.dirname(new URL(import.meta.url).pathname);
 
             const file = fs.createWriteStream(tarPath);
             https.get(url, function(response) {
@@ -152,7 +162,7 @@ export class InstallIPFS {
                             const version = execSync('ipfs-cluster-follow --version').toString().trim();
                             console.log(`Installed ipfs-cluster-follow version: ${version}`);
                             if (os.userInfo().username == "root") {
-                                let serviceConfig = fs.readFileSync(path.join(process.cwd(), 'ipfs_clusterFollow.service')).toString();
+                                let serviceConfig = fs.readFileSync(path.join(thisDir, 'ipfs_clusterFollow.service')).toString();
                                 fs.writeFileSync('/etc/systemd/system/ipfs-cluster-follow.service', serviceConfig);
                                 execSync('systemctl enable ipfs-cluster-follow');
                                 console.log('ipfs-cluster-follow service enabled.');
@@ -241,6 +251,7 @@ export class InstallIPFS {
         const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipfs-cluster-service-'));
         const tarPath = path.join(tmpDir, 'ipfs-cluster-service.tar.gz');
         const url = "https://dist.ipfs.tech/ipfs-cluster-service/v1.0.8/ipfs-cluster-service_v1.0.8_linux-amd64.tar.gz";
+        let thisDir = this.thisDir || path.dirname(new URL(import.meta.url).pathname);
     
         // Download and extract the tarball
         const file = fs.createWriteStream(tarPath);
@@ -262,9 +273,8 @@ export class InstallIPFS {
                         console.log(`Installed ipfs-cluster-service version: ${version}`);
                         // if root user, write and enable systemd service
                         if (os.userInfo().username == "root") {
-                            // Assuming ipfs_clusterService is the content of your service file
-                            let  serviceContent = fs.readFileSync(path.join(process.cwd(), 'ipfs_clusterService.service')).toString()
-                            fs.writeFileSync('/etc/systemd/system/ipfs-cluster-service.service', serviceContent);
+                            let serviceConfig = fs.readFileSync(path.join(thisDir, 'ipfs_clusterFollow.service')).toString();
+                            fs.writeFileSync('/etc/systemd/system/ipfs-cluster-follow.service', serviceConfig);
                             execSync('systemctl enable ipfs-cluster-service');
                             console.log('ipfs-cluster-service service enabled.');
                             execSync('systemctl daemon-reload');
@@ -357,95 +367,152 @@ export class InstallIPFS {
     }
     
     async configIPFSClusterService(options = {}) {
-        let clusterName = options.cluster_name || this.cluster_name;
+        let clusterName = options.clusterName || this.clusterName;
         let diskStats = options.diskStats || this.diskStats;
         let ipfsPath = options.ipfsPath || this.ipfsPath;
-        try{
-        // Validate required parameters
-            if (os.getuid() === 0) {
-                const command0 = "systemctl enable ipfs-cluster-service";
-                const results0 = execSync(command0, { shell: true });
-                const command1 = `ipfsPath=${ipfsPath} ipfs-cluster-service init -f`;
-                const results1 = execSync(command1, { shell: true });
-                results1 = results1.toString();
-            } else {
-                const command1 = `ipfsPath=${ipfsPath} ipfs-cluster-service init -f`;
-                const results1 = execSync(command1, { shell: true });
-                results1 = results1.toString();
-            }
-            return {
-                "results1":results1,
-            }
-        }
-        catch(e){
-            console.error(e);
-            throw new Error("Error configuring IPFS Cluster Service");
-        }
-    }
-
-    async configIPFSClusterCtl(options = {}) {
-        let clusterName = options.cluster_name || this.cluster_name;
-        let diskStats = options.diskStats || this.diskStats;
-        let ipfsPath = options.ipfsPath || this.ipfsPath;
+        let secret = options.secret || this.secret;
 
         if (!diskStats) throw new Error("diskStats is None");
         if (!ipfsPath) throw new Error("ipfsPath is None");
+        if (!clusterName) throw new Error("clusterName is None");
+        if (!secret) throw new Error("secret is None");
 
-        this.cluster_name = clusterName;
-        this.diskStats = diskStats;
-        this.ipfsPath = ipfsPath;
-
-        let results1;
-        if (clusterName && ipfsPath && diskStats) {
-            try {
-                // The following command is commented out because it's a placeholder for actual implementation.
-                // let command1 = `ipfs-cluster-ctl ${clusterName} init`;
-                // results1 = execSync(command1).toString();
-                
-                let thisDir = process.cwd();
-                let homeDir = os.homedir();
-                let configDir = path.join(homeDir, '.ipfs-cluster');
-                let pebbleDir = path.join(ipfsPath, 'pebble');
-
-                if (!fs.existsSync(configDir)) {
-                    fs.mkdirSync(configDir, { recursive: true });
+        let thisDir = this.thisDir || path.dirname(new URL(import.meta.url).pathname);
+        let homeDir = os.homedir();
+        let clusterPath = path.join(ipfsPath, clusterName);
+        let servicePath;
+        let run_daemon;
+        let initClusterDaemonResults;
+        let results = {}
+        if (os.userInfo().username == "root") {
+            servicePath = path.join("/root", ".ipfs-cluster");
+        } else {
+            servicePath = path.join(homeDir, ".ipfs-cluster");
+        }
+        if (clusterName && ipfsPath && diskStats && secret) {
+            try{
+                if (os.userInfo().username == "root") {
+                    const command0 = "systemctl enable ipfs-cluster-service";
+                    const results0 = execSync(command0, { shell: true });
+                    const initClusterDaemon = `IPFS_PATH=${ipfsPath} ipfs-cluster-service init -f`;
+                    initClusterDaemonResults = execSync(initClusterDaemonResults, { shell: true }).toString();
+                } else {
+                    const initClusterDaemon = `IPFS_PATH=${ipfsPath} ipfs-cluster-service init -f`;
+                    initClusterDaemonResults = execSync(command1, { shell: true }).toString();
                 }
 
-                if (!fs.existsSync(pebbleDir)) {
-                    fs.mkdirSync(pebbleDir, { recursive: true });
-                }
-
-                // Copying configuration files (service.json and peerstore) to the configuration directory.
-                fs.copyFileSync(path.join(thisDir, 'service.json'), path.join(configDir, 'service.json'));
-                fs.copyFileSync(path.join(thisDir, 'peerstore'), path.join(configDir, 'peerstore'));
-
-                // Linking pebble directory
-                let linkPath = path.join(configDir, 'pebble');
-                if (fs.existsSync(linkPath)) {
-                    fs.unlinkSync(linkPath);
-                }
-                fs.symlinkSync(pebbleDir, linkPath);
-                execSync(`systemctl enable ipfs-cluster-service`);
-                execSync(`systemctl daemon-reload`);
-            } catch (e) {
+                results["initClusterDaemonResults"] = initClusterDaemonResults                
+            }
+            catch(e){
                 console.error(e);
-                // Handle errors appropriately
+                throw new Error("Error configuring IPFS Cluster Service");
+            }
+
+            try{
+                let serviceConfig = fs.readFileSync(path.join(thisDir, 'service.json')).toString();
+                let workerID = "worker-" + crypto.randomUUID();
+                serviceConfig = serviceConfig.replace('"cluster_name": "ipfs-cluster"', 'cluster_name": "'+clusterName+'"');
+                serviceConfig = serviceConfig.replace('"secret": "96d5952479d0a2f9fbf55076e5ee04802f15ae5452b5faafc98e2bd48cf564d3"', '"secret": "'+ secret +'"');
+                fs.writeFileSync(path.join(followPath, 'service.json'), serviceConfig);
+                let peerStore = fs.readFileSync(path.join(thisDir, 'peerstore')).toString();
+                fs.writeFileSync(path.join(followPath, 'peerstore'), peerStore);
+
+                let pebbleLink = path.join(servicePath, "pebble");
+                let pebbleDir = path.join(clusterPath, "pebble");
+                if (clusterPath != followPath) {
+                    if (fs.existsSync(pebbleLink)) {
+                        fs.unlinkSync(pebbleLink);
+                    }
+                    if (!fs.existsSync(pebbleDir)) {
+                        fs.mkdirSync(pebbleDir, { recursive: true });
+                    }
+                    fs.symlinkSync(pebbleDir, pebbleLink);
+                }
+
+                if (os.userInfo().username == "root") {
+                    let serviceFile = fs.readFileSync(path.join(thisDir, 'ipfs_cluster.service')).toString();
+                    fs.writeFileSync("/etc/systemd/system/ipfs-cluster-service.service", new_service)
+                    execSync("systemctl enable ipfs-cluster-service");
+                    execSync("systemctl daemon-reload");
+                }
+
+            }
+            catch(e){
+                console.error(e);
+                throw new Error("Error configuring IPFS Cluster Service");
+            }
+
+            try{
+                let run_daemon_results
+                if (os.userInfo().username == "root") {
+                    let reloadDaemon = "systemctl daemon-reload";
+                    let reloadDaemonResults = execSync(reloadDaemon);
+
+                    // Enable service 
+                    let enableDaemon = "systemctl enable ipfs-cluster-service";
+                    let enableDaemonResults = execSync(enableDaemon);
+
+                    // Start daemon
+                    let startDaemon = "systemctl start ipfs-cluster-service";
+                    let startDaemonResults = execSync(startDaemon);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    run_daemon = execSync("systemctl status ipfs-cluster-service | grep Active | awk '{print $2}'").toString();
+                }
+                else{
+                    let run_daemon_cmd = "ipfs-cluster-service daemon";
+                    run_daemon = exec(
+                        run_daemon_cmd,
+                        (error, stdout, stderr) => {
+                            console.log(stdout);
+                        }
+                    );
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    run_daemon = run_daemon.stderr.read();
+                }
+                // Check if daemon is running
+                results["run_daemon"] = run_daemon;
+            }
+            catch(e){
+                console.log(e);
+                return e.toString();
             }
         }
+        return results;
+    }
 
-        return {
-            results1: results1
-        };
+    async configIPFSClusterCtl(options = {}) {
+        let results = {};
+        let run_daemon_cmd = "ipfs-cluster-ctl status";
+        run_daemon = execSync(run_daemon_cmd).toString();
+
+        findDaemon = "ps -ef | grep ipfs-cluster-service | grep -v grep | wc -l";
+        findDaemonResuls = execSync(findDaemon).toString();
+
+        if (parseInt(findDaemonResuls) == 0) {
+            console.log("ipfs-cluster-service daemon is not running");
+            throw new Error("ipfs-cluster-service daemon is not running");
+        }
+        else{
+            let killDaemon = "ps -ef | grep ipfs-cluster-service | grep -v grep | awk '{print $2}' | xargs kill -9";
+            let killDaemonResults = execSync(killDaemon);
+        }
+
+        results["run_daemon"] = run_daemon;
+
+        return results;
     }
 
     async configIPFSClusterFollow(options = {}) {
         let clusterName = options.clusterName || this.clusterName;
         let diskStats = options.diskStats || this.diskStats;
         let ipfsPath = options.ipfsPath || this.ipfsPath;
+        let secret = options.secret || this.secret;
 
         if (!diskStats) throw new Error("diskStats is None");
         if (!ipfsPath) throw new Error("ipfsPath is None");
-        if (!ipfsPath) throw new Error("ipfsPath is None");
+        if (!clusterName) throw new Error("clusterName is None");
+        if (!secret) throw new Error("secret is None");
+
         let thisDir = this.thisDir || path.dirname(new URL(import.meta.url).pathname);
         let homeDir = os.homedir();
         let clusterPath = path.join(ipfsPath, clusterName);
@@ -457,7 +524,7 @@ export class InstallIPFS {
         } else {
             followPath = path.join(homeDir, ".ipfs-cluster-follow", clusterName);
         }
-        if (clusterName && ipfsPath && diskStats) {
+        if (clusterName && ipfsPath && diskStats && secret) {
             try {
                 let rm_command = `rm -rf ${followPath}`;
                 execSync(rm_command);
@@ -470,6 +537,10 @@ export class InstallIPFS {
                     fs.mkdirSync(followPath, { recursive: true });
                 }
                 let serviceConfig = fs.readFileSync(path.join(thisDir, 'service_follower.json')).toString();
+                let workerID = "worker-" + crypto.randomUUID();
+                serviceConfig = serviceConfig.replace('"peername": "worker"', `peername": `+workerID+`"`);
+                serviceConfig = serviceConfig.replace('"cluster_name": "ipfs-cluster"', 'cluster_name": "'+clusterName+'"');
+                serviceConfig = serviceConfig.replace('"secret": "96d5952479d0a2f9fbf55076e5ee04802f15ae5452b5faafc98e2bd48cf564d3"', '"secret": "'+ secret +'"');
                 fs.writeFileSync(path.join(followPath, 'service.json'), serviceConfig);
                 let peerStore = fs.readFileSync(path.join(thisDir, 'peerstore')).toString();
                 fs.writeFileSync(path.join(followPath, 'peerstore'), peerStore);
@@ -1037,7 +1108,7 @@ export class InstallIPFS {
 
     async installAndConfigure() {
         let results = {};
-        let options = {diskStats: this.diskStats, ipfsPath: this.ipfsPath, clusterName: this.clusterName, clusterLocation: this.clusterLocation};
+        let options = {diskStats: this.diskStats, ipfsPath: this.ipfsPath, clusterName: this.clusterName, clusterLocation: this.clusterLocation, secret: this.secret};
         try {
             if (['leecher', 'worker', 'master'].includes(this.role)) {
                 // Assuming these methods are implemented and properly handle async operations
@@ -1051,8 +1122,8 @@ export class InstallIPFS {
             if (this.role === 'master') {
                 const clusterService = this.installIPFSClusterService(options);
                 const clusterCtl = this.installIPFSClusterCtl(options);
-                const clusterServiceConfig = this.configIPFSClusterService(options);
-                const clusterCtlConfig = this.configIPFSClusterCtl(options);
+                const clusterServiceConfig = await this.configIPFSClusterService(options);
+                const clusterCtlConfig = await this.configIPFSClusterCtl(options);
                 results.clusterService = clusterService;
                 results.clusterCtl = clusterCtl;
                 results.clusterServiceConfig = clusterServiceConfig;
@@ -1085,11 +1156,10 @@ export class InstallIPFS {
 
 async function main(){
     const meta = {
-        role: "worker",
+        role: "master",
         clusterName: "cloudkit_storage",
         clusterLocation: "/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv",
-        // Alternative cluster location (commented out in the example)
-        // clusterLocation: "/ip4/167.99.96.231/udp/4001/quic-v1/p2p/12D3KooWS9pEXDb2FEsDv9TH4HicZgwhZtthHtSdSfyKKDnkDu8D",
+        secret: "96d5952479d0a2f9fbf55076e5ee04802f15ae5452b5faafc98e2bd48cf564d3",
     };
 
     // Initialize the IPFS configuration manager with the provided metadata
