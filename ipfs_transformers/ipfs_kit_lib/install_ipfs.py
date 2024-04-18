@@ -890,8 +890,6 @@ class install_ipfs:
 		finally:
 			pass
 
-
-
 	def uninstall_ipfs_cluster_follow(self):
 		try:
 			command = "ps -ef | grep  ipfs-cluster-follow | grep -v grep | awk '{print $2}' | xargs kill -9"
@@ -917,7 +915,6 @@ class install_ipfs:
 			return False
 		finally:
 			pass
-
 
 	def uninstall_ipfs_cluster_ctl(self):
 		try:
