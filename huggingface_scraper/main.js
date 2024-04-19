@@ -32,7 +32,6 @@ export class Scraper {
     }
 
     main() {
-        console.log(this)
         let args = process.argv.slice(2);
         let command;
         let source;
@@ -60,14 +59,9 @@ export class Scraper {
             //console.log("No command specified try -h or --help for help");
             let this_generate_manifest = new generate_manifest.Generate_Manifest();
             let this_manifest = this_generate_manifest.generate_from_prompt()
-            //remove keys 
-            delete this_manifest["s3_creds"];
-            delete this_manifest["hf_creds"];
-            delete this_manifest["mysql_creds"];
+            //remove keys
             console.log("--this_manifest--");
             console.log(this_manifest);
-//            console.log("--scraper class--");
-//            console.log(this)
             let this_process_manifest = new manifest.Manifest(
                 this.s3_creds,
                 this.hf_creds,

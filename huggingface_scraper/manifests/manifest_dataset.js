@@ -44,70 +44,21 @@ export default function dataset_calc(){
 
     let source = open_ended_question("Enter a source from " + location + ": ")
 
-    let formats = ["ckpt", "safetensors"]
+    let formats = [ "parquet", "text", "json", "csv", "tsv"]
 
     let format = multiple_choice_question("Select a format: ", formats)
-    
-    let quantizations = ["fp32", "fp16" ]
+   
+    let samples = open_ended_question("Enter the number of samples: ")
 
-    let quantization = multiple_choice_question("what is the model quantization?", quantizations)
-
-    let resolutions = [512, 1024, 2048, 4096]
-
-    let resolution = prompt("Select a context size: ", resolutions)
-
-    let controlnet_types = ["inpainting", "instructPix2Pix", "canny2img", "hed2img", "depth2img", "normal2img","pose2img","scribble2img","seg2img"]
-
-    let controlnet = multiple_choice_question("Select a controlnet type: ", controlnet_types)
-
-    if (controlnet != ''){
-        console.log("controlnet is: " + controlnet)
-
-        let dependency_options = ["yes", "no"]
-
-        let dependency = open_ended_question('Are the depenencies bundled with the model? ', dependency_options)
-
-        if (dependency == 'no'){
-
-            console.log("dependencies are not bundled")
-
-            let dependency_location = multiple_choice_question("What is the dependency source?", locations)
-                        
-            let dependency_source = open_ended_question("What is the dependency source?: ")
-
-        }
-    
-    }
-
-    let versions = ["v1.5", "v1.6","v2.0","v2.1"]
-
-    let version = multiple_choice_question("Select a version: ", versions)
-
-    let default_steps = open_ended_question("Enter a default number of steps: ")
-
-    let default_noise = open_ended_question("Enter a default denoising strength: ")
-
-    let default_cfgscale = open_ended_question("What is the default cfgscale?")
-
-    let batch_size_options = [1,2,4]
-
-    let batch_size = multiple_choice_question("Enter a batch size: ", batch_size_options)
+    let size = open_ended_question("Enter the size of the dataset in MB: ")
     
     let generate = {}
     generate.modelName = modelName
     generate.location = location
     generate.source = source
     generate.format = format
-    generate.quantization = quantization
-    generate.resolution = resolution
-    generate.controlnet = controlnet
-    generate.version = version
-    generate.default_steps = default_steps
-    generate.default_noise = default_noise
-    generate.default_cfgscale = default_cfgscale
-    generate.batch_size = batch_size
 
-    let results = diffusion_generate(generate)
+    let results = dataset_generate(generate)
 
     return results
 }
@@ -117,122 +68,20 @@ export function dataset_generate_hwrequirements(generate){
     results.cpu_count = [1]
     results.gpuCount = [0]
     let padding = 1.1
-    if(generate.version == 'v1.5'){
-        results.parameters = 1.5e9
-        results.flopsPerUnit = 0
-        minFlops = {
-            "fp8": 0,
-            "fp16": 10,
-            "fp32": 0,
-        }
-        results.megapixel_steps_per_second = 0
-    }
-    if(generate.version == 'v1.6'){
-        results.parameters = 1.5e9
-        results.flopsPerUnit = 0
-        minFlops = {
-            "fp8": 0,
-            "fp16": 10,
-            "fp32": 0,
-        }
-        results.steps_per_second = 0
-    }
-    if(generate.version == 'v2.0'){
-        results.parameters = 1.5e9
-        results.flopsPerUnit = 0
-        results.minFlops = {
-            "fp8": 0,
-            "fp16": 20,
-            "fp32": 0,
-        }
-        results.megapixel_steps_per_second = 0
-    }
-    if(generate.version == 'v2.1'){
-        results.parameters = 1.5e9
-        results.flopsPerUnit = 0
-        results.minFlops = {
-            "fp8": 0,
-            "fp16": 20,
-            "fp32": 0,
-        }
-        results.megapixel_steps_per_second = 0
-    }
-
-    if (generate.quantization == 'fp16'){
-        results.gpuMemory = results.parameters * 2 * padding
-        results.disk_usage = results.parameters * 2 * padding
-        results.cpu_memory = results.parameters * 2 * padding
-    }
-    if (generate.quantization == 'fp32'){
-        results.gpuMemory = results.parameters * 4 * padding
-        results.disk_usage = results.parameters * 4 * padding
-        results.cpu_memory = results.parameters * 4 * padding
-    }
-
-
+    results.gpuMemory = 0
+    results.disk_usage = results.size * 1024 * 1024 * padding
+    results.cpu_memory = results.size * 1024 * 1024 * padding
     return results
 }
 
 
 export function dataset_generate_metadata(generate){
     let results = generate_metadata_template(generate)
-    results.default_cfgscale = generate.default_cfgscale
-    results.default_noise = generate.default_noise
-    results.default_steps = generate.default_steps
-    results.controlnet = generate.controlnet
-    results.resolution = generate.resolution
     results.format = generate.format
     results.location = generate.location
     results.modelName = generate.modelName
     results.model_type = 'dataset'
-    results.quantization = generate.quantization
-    results.version = generate.version
-    let controlnet_types = ["canny2img", "hed2img", "depth2img", "normal2img","pose2img","scribble2img","seg2img"]
-    let special_types = ["inpainting", "instruct"]
-    if (generate.controlnet != 'none'){
-        results.id = generate.modelName + '-' + (parseInt(generate.parameters) / 1000000000).toString() + 'b-' + generate.quantization + '-' + generate.controlnet
-    }
-    if(generate.version == 'v1.5'){
-        if (generate.controlnet != 'none'){
-            generate.templates = ['sd1_canny2img', 'sd1_hed2img', 'sd1_depth2img', 'sd1_normal2img','sd1_pose2img','sd1_scribble2img','sd1_seg2img']
-        }
-        else{
-            generate.templates = ['sd1_txt2img', 'sd1_img2img', 'sd1_img2txt']
-        }
-    }
-    if(generate.version == 'v1.6'){
-        if (generate.controlnet != 'none'){
-            generate.templates = ['sd1_canny2img', 'sd1_hed2img', 'sd1_depth2img', 'sd1_normal2img','sd1_pose2img','sd1_scribble2img','sd1_seg2img']
-        }
-        else{
-            generate.templates = ['sd1_txt2img', 'sd1_img2img', 'sd1_img2txt']
-        }
-    }
-    if(generate.version == 'v2.0'){
-        if (generate.controlnet != 'none'){
-            generate.templates = ['sd2_canny2img', 'sd2_hed2img', 'sd2_depth2img', 'sd2_normal2img','sd2_pose2img','sd2_scribble2img','sd2_seg2img']
-        }
-        else{
-            generate.templates = ['sd2_txt2img', 'sd2_img2img', 'sd2_img2txt']
-        }
-    }
-    if(generate.version == 'v2.1'){
-        if (generate.controlnet != 'none'){
-            generate.templates = ['sd2_canny2img', 'sd2_hed2img', 'sd2_depth2img', 'sd2_normal2img','sd2_pose2img','sd2_scribble2img','sd2_seg2img']
-        }
-        else{
-            generate.templates = ['sd2_txt2img', 'sd2_img2img', 'sd2_img2txt']
-        }
-    }
-    if(generate.version == 'sdxl'){
-        if (generate.controlnet != 'none'){
-            generate.templates = ['sdxl_canny2img', 'sdxl_hed2img', 'sdxl_depth2img', 'sdxl_normal2img','sdxl_pose2img','sdxl_scribble2img','sdxl_seg2img']
-        }
-        else{
-            generate.templates = ['sdxl_txt2img', 'sdxl_img2img', 'sdxl_img2txt']
-        }
-    }
-    results.units = "megapixel_steps"
+    results.units = "MB"
     return results
 }
 
@@ -249,7 +98,7 @@ export function dataset_generate(generate){
 export function dataset_add(generation){
     if (generation.modelName != undefined){
         models_generate_dataset[generation.modelName] = generation
-        fs.writeFileSync(path.resolve('../modeldata/generate_dataset.json'), JSON.stringify(models_generate_diffusion, null, 2))       
+        fs.writeFileSync(path.resolve('../modeldata/generate_dataset.json'), JSON.stringify(models_generate_dataset, null, 2))       
         return Object.keys(models_generate_dataset)
     }
     else{

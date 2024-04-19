@@ -12,6 +12,7 @@ import * as manifest_hf_lm from './manifests/manifest_hf_lm.js'
 import * as manifest_knn from './manifests/manifest_knn.js'
 import * as manifest_diffusion from './manifests/manifest_diffusion.js'
 import * as manifest_api from './manifests/manifest_api.js'
+import * as manifest_dataset from './manifests/manifest_dataset.js'
 import {complete, parse_templates, generate_test} from './utils.js'
 import process from 'process'
 

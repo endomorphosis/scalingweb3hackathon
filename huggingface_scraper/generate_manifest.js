@@ -98,7 +98,7 @@ export class Generate_Manifest{
         let metadata = this.metadata
         let hwRequirements = this.hwRequirements
         let results
-        let model_types = ['hf_transformers', 'hf_embed', 'llama_cpp', 'diffusion', 'knn', 'api', 'whisper', 'hf_lm', 'hf_t5']
+        let model_types = ['hf_transformers', 'hf_embed', 'llama_cpp', 'diffusion', 'knn', 'api', 'whisper', 'hf_lm', 'hf_t5', 'dataset']
         // prompt the user for input
         console.log("1. hf_transformers")
         console.log("2. hf_embed")
@@ -109,7 +109,7 @@ export class Generate_Manifest{
         console.log("7. whisper")
         console.log("8. hf_lm")
         console.log("9. hf_t5")
-        console.log("0. dataset")
+        console.log("10. dataset")
         // request console input
         let prompt = prompt_sync(({
             history: prompt_sync_history(),
@@ -121,7 +121,7 @@ export class Generate_Manifest{
         // check if the input is valid
         console.log("confirm model type: " + model_type)
         if (!model_types.includes(model_type)){
-            if (parseInt(model_type) > 0 && parseInt(model_type) < 8){
+            if (parseInt(model_type) > 0 && parseInt(model_type) <= 10 ){
                 model_type = model_types[parseInt(model_type) - 1]
             }
             else{
@@ -131,7 +131,7 @@ export class Generate_Manifest{
         }
     
         this.skill = model_type
-    
+
         if (model_type == 'hf_transformers'){
             results = hf_transformers_calc(this)
         }
@@ -180,6 +180,11 @@ export class Generate_Manifest{
            let test = generate_test(results)
         }
         catch(err){
+            console.log("Error in testing the manifest ")
+            console.log(model_type)
+            console.log("results")
+            console.log(results)
+            console.log("error")
             console.log(err)
 //            throw("Error in testing the manifest " +  model_type)
         }

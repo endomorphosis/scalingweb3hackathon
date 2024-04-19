@@ -51,12 +51,12 @@ process.env.collection_path = config.collection_path
 process.env.ipfs_path = config.ipfs_path
 
 const scraper = new huggingface_scraper.Scraper(
-    s3_creds = config.s3,
-    hf_creds = config.hf,
-    mysql_creds = config.mysql,
-    local_model_path = config.local_model_path,
-    ipfs_path = config.ipfs_path,
-    collection_path = config.collection_path
+    config.s3,
+    config.hf,
+    config.mysql,
+    config.local_model_path,
+    config.ipfs_path,
+    config.collection_path
 );
 
 scraper.main();
