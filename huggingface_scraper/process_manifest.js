@@ -3,10 +3,11 @@ import { folder_data, generate_md5, synchronousHttpGet, upload_files_s3} from '.
 import { ipfsClusterCtl } from "./ipfs.js"
 import { convert_model } from './convert.js'
 import { generate_readme } from './readme-generate.js'
-import child_process, { exec } from 'child_process'
+import child_process from 'child_process'
+import { execSync } from 'child_process'
 import process from 'process'
 import path, { relative } from 'path'
-
+import os from 'os'
 const cwd = path.dirname(new URL(import.meta.url).pathname)
 
 export class process_manifest
@@ -1439,10 +1440,10 @@ export function import_local(generate, manifest, build_path){
     let dest_path = build_path
     let file_structure = []
     // detect if file or directory
-    if (fs.existsDir(source_path)){
+    if (fs.existsSync(source_path)){
         // copy directory
         file_structure.push("/")
-        fs.copyDir(source_path, dest_path)
+        execSync("cp -r " + source_path + " " + dest_path)
         let this_directory_tree = fs.walkDir(source_path)
         for(var i = 0; i < this_directory_tree.length; i++){
             file_structure.push(this_directory_tree[i])

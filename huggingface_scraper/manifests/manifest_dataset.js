@@ -57,6 +57,8 @@ export default function dataset_calc(){
     generate.location = location
     generate.source = source
     generate.format = format
+    generate.samples = samples
+    generate.size = size
 
     let results = dataset_generate(generate)
 
@@ -65,12 +67,12 @@ export default function dataset_calc(){
 
 export function dataset_generate_hwrequirements(generate){
     let results = generate_hwrequirements_template(generate)
-    results.cpu_count = [1]
+    results.cpuCount = [1]
     results.gpuCount = [0]
     let padding = 1.1
     results.gpuMemory = 0
-    results.disk_usage = results.size * 1024 * 1024 * padding
-    results.cpu_memory = results.size * 1024 * 1024 * padding
+    results.diskUsage = results.size * 1024 * 1024 * padding
+    results.cpuMemory = results.size * 1024 * 1024 * padding
     return results
 }
 
@@ -82,6 +84,8 @@ export function dataset_generate_metadata(generate){
     results.modelName = generate.modelName
     results.model_type = 'dataset'
     results.units = "MB"
+    results.samples = generate.samples
+    results.size = generate.size
     return results
 }
 
