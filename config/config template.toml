@@ -10,10 +10,10 @@ ipfs_path = "/storage/ipfs/"
 "orbitdb: "/orbitdb/zdpuB31L6gJz49erikZSQT3A1erJbid8oUTBrjLtBwjjXe3R5"
 
 [[HF]]
-hf_account_name = "endomorphosis"
-hf_user_key = "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"
-hf_org_key = "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"
-hf_org_name = "publicus"
+hf_account_name = "your_account_name"
+hf_user_key = "your_user_key"
+hf_org_key = "your_org_key"
+hf_org_name = "your_org_name"
 
 [[IPFS]]
 
@@ -30,7 +30,7 @@ bootstrap = [
 [[IPFS.CLUSTER]]
 clusterName = "cloudkit_storage"
 clusterLocation = "/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv",
-secret: "96d5952479d0a2f9fbf55076e5ee04802f15ae5452b5faafc98e2bd48cf564d3"
+secret = ""
 
 [[IPFS.PEERSTORE]]
 peerlist = [
@@ -70,11 +70,11 @@ ipAddress = "127.0.0.1"
 dbAddress = "/orbitdb/zdpuB31L6gJz49erikZSQT3A1erJbid8oUTBrjLtBwjjXe3R5"
 
 [[S3]]
-s3_bucket ="huggingface-models"
-s3_secret_key = "H1osbJRy3903PTMqyOAGD6MIohi4wLXGscnvMEduh10"
-s3_access_key = "OVEXCZJJQPUGXZOV"
-s3_endpoint = "https://object.ord1.coreweave.com"
-s3_host_bucket = "%(bucket)s.object.ord1.coreweave.com"
+s3_bucket =""
+s3_secret_key = ""
+s3_access_key = ""
+s3_endpoint = ""
+s3_host_bucket = ""
 
 [[PINATA]]
 

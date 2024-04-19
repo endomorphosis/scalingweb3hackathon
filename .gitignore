@@ -10,3 +10,5 @@ __pycache__
 /orbitdb/
 build
 ipfs_transformers.egg-info
+config/config.toml
+config.toml
