@@ -2,7 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import child_process, { exec } from 'child_process'
 
-export default class ipfsClusterCtl {
+export class ipfsClusterCtl {
     constructor(){
         this.pinset = get_pinset()
         this.exec = {}

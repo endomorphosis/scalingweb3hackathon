@@ -1,23 +1,24 @@
-[[PATHS]]
+[PATHS]
 local_path = "/storage/cloudkit-models"
 ipfs_path = "/storage/ipfs/"
+collection_path = "/storage/cloudkit-models/collection.json"
 
-[[PATHS.COLLECTION]]
-"local" = "/storage/cloudkit-models/collection.json",
-"s3": "s3://cloudkit-beta/collection.json",
-"ipfs": "QmXBUkLywjKGTWNDMgxknk6FJEYu9fZaEepv3djmnEqEqD",
-"https": "https://huggingface.co/endomorphosis/cloudkit-collection/resolve/main/collection.json"
-"orbitdb: "/orbitdb/zdpuB31L6gJz49erikZSQT3A1erJbid8oUTBrjLtBwjjXe3R5"
+[PATHS.COLLECTION]
+local = "/storage/cloudkit-models/collection.json"
+s3 = "s3://cloudkit-beta/collection.json"
+ipfs =  "QmXBUkLywjKGTWNDMgxknk6FJEYu9fZaEepv3djmnEqEqD"
+https = "https://huggingface.co/endomorphosis/cloudkit-collection/resolve/main/collection.json"
+orbitdb = "/orbitdb/zdpuB31L6gJz49erikZSQT3A1erJbid8oUTBrjLtBwjjXe3R5"
 
-[[HF]]
-hf_account_name = "endomorphosis"
-hf_user_key = "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"
-hf_org_key = "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"
-hf_org_name = "publicus"
+[HF]
+account_name = "endomorphosis"
+user_key = "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"
+org_key = "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"
+org_name = "publicus"
 
-[[IPFS]]
+[IPFS]
 
-[[IPFS.BOOTSTRAP]]
+[IPFS.BOOTSTRAP]
 bootstrap = [
 "/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 "/ip4/104.131.131.82/udp/4001/quic-v1/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
@@ -27,12 +28,12 @@ bootstrap = [
 "/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt"
 ]
 
-[[IPFS.CLUSTER]]
+[IPFS.CLUSTER]
 clusterName = "cloudkit_storage"
-clusterLocation = "/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv",
-secret: "96d5952479d0a2f9fbf55076e5ee04802f15ae5452b5faafc98e2bd48cf564d3"
+clusterLocation = "/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv"
+secret = "96d5952479d0a2f9fbf55076e5ee04802f15ae5452b5faafc98e2bd48cf564d3"
 
-[[IPFS.PEERSTORE]]
+[IPFS.PEERSTORE]
 peerlist = [
 "/ip4/10.11.0.1/tcp/9096/p2p/12D3KooWDYKMnVLKnP2SmM8umJEEKdhug93QYybmNUEiSe1Kwjmu",
 "/ip4/10.120.0.2/tcp/9096/p2p/12D3KooWDYKMnVLKnP2SmM8umJEEKdhug93QYybmNUEiSe1Kwjmu",
@@ -65,22 +66,27 @@ peerlist = [
 "/ip4/10.120.0.2/tcp/9096/p2p/12D3KooWDYKMnVLKnP2SmM8umJEEKdhug93QYybmNUEiSe1Kwjmu"
 ]
 
-[[ORBITDB]]
+[ORBITDB]
 ipAddress = "127.0.0.1"
 dbAddress = "/orbitdb/zdpuB31L6gJz49erikZSQT3A1erJbid8oUTBrjLtBwjjXe3R5"
 
-[[S3]]
-s3_bucket ="huggingface-models"
-s3_secret_key = "H1osbJRy3903PTMqyOAGD6MIohi4wLXGscnvMEduh10"
-s3_access_key = "OVEXCZJJQPUGXZOV"
-s3_endpoint = "https://object.ord1.coreweave.com"
-s3_host_bucket = "%(bucket)s.object.ord1.coreweave.com"
+[MYSQL]
+host = "swissknife.mwni.io"
+user = "swissknife"
+password = "W5!LIGO[pRPO0SdH"
+database = "swissknife"
 
-[[PINATA]]
+[S3]
+bucket ="huggingface-models"
+secret_key = "H1osbJRy3903PTMqyOAGD6MIohi4wLXGscnvMEduh10"
+access_key = "OVEXCZJJQPUGXZOV"
+endpoint = "https://object.ord1.coreweave.com"
+host_bucket = "%(bucket)s.object.ord1.coreweave.com"
 
-[[LIGHTHOUSE]]
+[PINATA]
 
-[[WEB3STORAGE]]
+[LIGHTHOUSE]
 
-[[FILEBASE]]
+[WEB3STORAGE]
 
+[FILEBASE]
