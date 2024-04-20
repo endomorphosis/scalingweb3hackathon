@@ -8,6 +8,10 @@ import { execSync } from 'child_process'
 import process from 'process'
 import path, { relative } from 'path'
 import os from 'os'
+import prompt_sync from 'prompt-sync'
+import prompt_sync_history from 'prompt-sync-history'
+import {complete, open_ended_question, multiple_choice_question, parse_templates, generate_template, generate_metadata_template, generate_hwrequirements_template} from './utils.js'
+
 const cwd = path.dirname(new URL(import.meta.url).pathname)
 
 export class process_manifest
@@ -1436,26 +1440,60 @@ export function import_civitai(generate, manifest, build_path){
 }
 
 export function import_local(generate, manifest, build_path){
-    let source_path = generate.source
+    if (manifest.folderdata != undefined && manifest.folderdata.length > 0){
+        console.log("found files: ")
+        console.log(manifest.folderdata.length)
+    }
+    let prompt = prompt_sync(({
+        history: prompt_sync_history(),
+        autocomplete: complete([]),
+        sigint: true
+    }))
+
+    let source_path = manifest.source
+    let source_folders = source_path.split("/")
+    let basefolder = multiple_choice_question("Where is the model located?", source_folders) 
+    let basefolderIndex = source_folders.indexOf(basefolder)
+    source_path = path.join(source_path.split(basefolder)[0], basefolder)
+    console.log("source_path: " + source_path)
+    let basename = source_path || ""
     let dest_path = build_path
     let file_structure = []
+    let this_directory_tree = []
     // detect if file or directory
-    if (fs.existsSync(source_path)){
-        // copy directory
-        file_structure.push("/")
-        execSync("cp -r " + source_path + " " + dest_path)
-        let this_directory_tree = fs.walkDir(source_path)
-        for(var i = 0; i < this_directory_tree.length; i++){
-            file_structure.push(this_directory_tree[i])
+    if (manifest.folderData != undefined && manifest.folderData.length > 0){
+        if (fs.existsSync(source_path)){
+            // copy directory
+            file_structure.push("/")
+            this_directory_tree = manifest.folderData
+            execSync("cp -r " + source_path + " " + dest_path)
+        }
+        else{
+            // copy file
+            execSync("cp -r " + source_path + " " + dest_path)
+            file_structure.push("/")
+            file_structure.push("/" + dest_path)
         }
     }
     else{
-        // copy file
-        fs.copyFile(source_path, dest_path)
-        file_structure.push("/")
-        file_structure.push("/" + dest_path)
+        if (fs.existsSync(source_path) ){
+            // copy directory
+            file_structure.push("/")
+            execSync("cp -r " + source_path + " " + dest_path)
+            let this_directory_tree = fs.walkDir(source_path)
+            for(var i = 0; i < this_directory_tree.length; i++){
+                file_structure.push(this_directory_tree[i])
+            }
+        }
+        else{
+            // copy file
+            fs.copyFile(source_path, dest_path)
+            file_structure.push("/")
+            file_structure.push("/" + dest_path)
+        }
     }
-
+    
+    console.log("file_structure: " + file_structure)
     if (!fs.existsSync(build_path + "README.md")){
         fs.writeFileSync(build_path + "README.md", generate_readme(generate, manifest))
     }
@@ -1467,9 +1505,15 @@ export function import_local(generate, manifest, build_path){
     let manifest_path = build_path + 'manifest.json'
     let folderDict = {}
     for (var i = 0; i < file_structure.length; i++){
-        let this_file = file_structure[i]
+        let this_file
+        this_file = file_structure[i]
         let this_md5 = generate_md5(this_file, build_path)
         let this_size = fs.statSync(path.join(build_path,this_file)).size
+        if (basename == ""){      
+            this_file = file_structure[i]
+        }    else{
+            this_file = path.resolve(file_structure[i].replace(basename, ""))
+        }
         folderDict[this_file] = {"md5": this_md5, "size": this_size}
     }
 
