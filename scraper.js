@@ -9,7 +9,6 @@ let collection_path
 let ipfs_path
 let uid 
 let operating_system
-// detect operating sysem
 
 if (process.platform === 'win32') {
     operating_system = 'windows'
