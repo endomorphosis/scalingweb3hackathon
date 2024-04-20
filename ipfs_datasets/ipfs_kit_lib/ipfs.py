@@ -50,7 +50,7 @@ class ipfs:
 		# 		ps -ef | grep ipfs | grep daemon | grep -v grep | wc -l
 
 		# Run this if root and check if it passes 
-		if(os.userInfo().username == "root"):
+		if(os.geteuid() == 0):
 			try:
 				command1 = "systemctl start ipfs"
 				results1 = subprocess.check_output(command1, shell=True)
@@ -95,7 +95,7 @@ class ipfs:
 		results2 = None
 		ipfs_ready = False
 
-		if(os.userInfo().username == "root"):
+		if(os.geteuid() == 0):
 			try:
 				command1 = "systemctl stop ipfs"
 				results1 = subprocess.check_output(command1, shell=True)

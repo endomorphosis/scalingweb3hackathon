@@ -217,7 +217,7 @@ class install_ipfs:
 				results = subprocess.check_output(command, shell=True)
 				results = results.decode()
 				
-				if os.userInfo().username == "root":
+				if os.geteuid() == 0:
 					with open("/etc/systemd/system/ipfs-cluster-follow.service", "w") as file:
 						file.write(ipfs_cluster_follow)
 				else:
@@ -285,7 +285,7 @@ class install_ipfs:
 				results = subprocess.check_output(command, shell=True)
 				results = results.decode()
 				
-				if os.userInfo().username == "root":
+				if os.geteuid() == 0:
 					with open("/etc/systemd/system/ipfs-cluster-service.service", "w") as file:
 						file.write(ipfs_cluster_service)
 
@@ -372,6 +372,10 @@ class install_ipfs:
 				results1 = subprocess.check_output(command1, shell=True)
 				results1 = results1.decode()
 
+			else:
+				command1 = "IPFS_PATH="+ ipfs_path +" ipfs-cluster-service init -f"
+				results1 = subprocess.check_output(command1, shell=True)
+				results1 = results1.decode()
 				# TODO: Add test cases to all the config functions
 
 		except Exception as e:
@@ -516,7 +520,11 @@ class install_ipfs:
 
 					# TODO: Add test cases
 				else:
-					#NOTE: Clean this up and make better logging or drop the error all together
+					#command1 = "IPFS_CLUSTER_PATH="+ ipfs_path +" ipfs-cluster-follow ipfs_cluster init " + cluster_name
+					command1 = "ipfs-cluster-follow " + cluster_name + " init " + ipfs_path
+					results1 = subprocess.check_output(command1, shell=True)
+					results1 = results1.decode() 
+
 					print('You need to be root to write to /etc/systemd/system/ipfs-cluster-follow.service')				
 				
 			except Exception as e:
@@ -567,7 +575,7 @@ class install_ipfs:
 				pass
 			new_ipfs_cluster_follow = ipfs_cluster_follow.replace("run"," "+ cluster_name + " run")
 			
-			if os.userInfo().username == "root":
+			if os.geteuid() == 0:
 				with open("/etc/systemd/system/ipfs-cluster-follow.service", "w") as file:
 					file.write(new_ipfs_cluster_follow)
 			else:
@@ -687,7 +695,7 @@ class install_ipfs:
 			finally:
 				pass
 
-			if os.userInfo().username == "root":
+			if os.geteuid() == 0:
 				ipfs_service_text = ipfs_service.replace("ExecStart=","ExecStart= bash -c \"export IPFS_PATH="+ ipfs_path + " && ")
 				with open("/etc/systemd/system/ipfs.service", "w") as file:
 					file.write(ipfs_service_text)
@@ -716,7 +724,7 @@ class install_ipfs:
 							results5 = subprocess.Popen(command5, shell=True)
 
 							# Time out for 2 seconds to allow the file to download
-							time.sleep(2)	 
+							time.sleep(5)	 
 
 							if os.path.exists(ipfs_path + "/test.jpg"):
 								if os.path.getsize(ipfs_path + "/test.jpg") > 0:
@@ -825,6 +833,7 @@ class install_ipfs:
 	
 		return results7
 	
+	# FIXME: I really need to check the sudo rm -rf commands these should have error checking so they can't rm -rf /* or something when results is empty
 	def uninstall_ipfs(self):
 		try:
 			command = "ps -ef | grep ipfs | grep daemon | grep -v grep | awk '{print $2}' | xargs kill -9"
@@ -1039,6 +1048,7 @@ class install_ipfs:
 			ipget = self.install_ipget()
 			ipfs = self.install_ipfs_daemon()
 			ipfs_config = self.config_ipfs(cluster_name = self.cluster_name, ipfs_path = self.ipfs_path)
+			# NOTE: This fails some times but never when debugging so probably some sort of race issue 
 			results["ipfs"] = ipfs
 			results["ipfs_config"] = ipfs_config["config"]
 			self.run_ipfs_daemon()

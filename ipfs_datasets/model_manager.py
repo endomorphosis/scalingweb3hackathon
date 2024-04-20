@@ -39,6 +39,9 @@ class model_manager:
         self.this_model = None
         self.this_model_name = None
         self.s3cfg = None
+        #NOTE
+        #TODO
+        # make sure that meta is getting data from config.toml, and that if there is no config.toml that all values in config_template.toml are assigned at start.
         if meta is not None and type (meta) == dict:
             if "s3cfg" in meta:
                 self.s3cfg = meta["s3cfg"]
@@ -91,6 +94,9 @@ class model_manager:
         self.s3_kit = s3_kit(resources, meta = meta)
         self.ipfs_kit = ipfs_kit(resources, meta = meta)
         self.install_ipfs = install_ipfs(resources, meta = meta)
+        #NOTE
+        #TODO
+        #add self.install_orbitdb object to automatically pull and install orbitdb node server
         ipfs_path = self.ipfs_path
         if not os.path.exists(self.ipfs_path):
             os.makedirs(self.ipfs_path)
@@ -122,6 +128,9 @@ class model_manager:
             self.install_ipfs.config_ipfs_cluster_follow()
             pass               
         
+        #NOTE
+        #TODO
+        #ADD STOP AND START ORBITDB
         self.ipfs_kit.ipfs_kit_stop()
         self.ipfs_kit.ipfs_kit_start()
         execute_ready = False
@@ -228,7 +237,8 @@ class model_manager:
             "local_collection": self.local_collection,
             "https_collection": self.https_collection
         }
-       
+    # TODO: This fails if aria2c is not installed but doesn't fail gracefully and in a way that diagnoses the problem to the user 
+    #       Either add a check for aria2c and report to user or add aria2c to the install that is ran before hand
     def download_https(self, https_src, model_path, **kwargs):
         suffix = "." + https_src.split("/")[-1].split(".")[-1]
         if (os.path.exists(model_path)):
@@ -349,26 +359,32 @@ class model_manager:
                         else:
                             raise Exception("No path in results or timeout")                              
                 else:
-                    with tempfile.TemporaryDirectory(dir="/tmp", delete=False) as tempdir:
-                        # Store results in tempdir?
+                    # Download folder
+                    with tempfile.TemporaryDirectory(dir="/tmp") as tempdir:
                         results = self.ipfs_kit.ipfs_get(cid = ipfs_src, path = tempdir)
                         
-                        # Check contents of tempdir
-                        if "path" in list(results.keys()):
-                            # Check what this returns if i have  
-                            results_file_name = results["path"]
-                            # Move to /.cache/huggingface/{CID}/
-                            shutil.move(results_file_name, filename_dst)
-                         
+                        if os.path.exists(filename_dst):
+                            pass
+                        else:
+                            os.mkdir(filename_dst)
+
+                        if filename_dst[-1] == "/":
+                            pass
+                        else:
+                            filename_dst = filename_dst + "/"
+
+                        for file in os.scandir(tempdir):
+                            if file.is_file():
+                                shutil.move(file.path, filename_dst + file.name)
+
                     return filename_dst
                     
-                    
-                    pass
             except Exception as e:
                 print("Exception thrown remove files")
-                if(os.path.exists(this_temp_file.name)):
-                    command = "rm "+this_temp_file.name
-                    os.system(command)
+                if(this_temp_file != None):
+                    if(os.path.exists(this_temp_file.name)):
+                        command = "rm "+this_temp_file.name
+                        os.system(command)
                 return e
             
         else:
@@ -449,6 +465,7 @@ class model_manager:
         }
 
         if all(value is None for value in model_data.values()):
+            # TODO: Should go over the file and fix all instances of model to dataset 
             raise Exception("Model not found")
         
         this_model = None
@@ -615,6 +632,7 @@ class model_manager:
             cache = kwargs["cache"]
         else:
             cache = {
+                # FIXME: Why is this local path set to /storage/cloudkit-models/collection.json?
                 "local": "/storage/cloudkit-models/collection.json",
                 "s3": "s3://cloudkit-beta/collection.json",
                 "ipfs": "QmXBUkLywjKGTWNDMgxknk6FJEYu9fZaEepv3djmnEqEqD",
@@ -1731,53 +1749,3 @@ class model_manager:
         self.evict_zombies()
         return self
     
-if __name__ == "__main__":
-    endpoint = "https://object.ord1.coreweave.com"
-    access_key = "OVEXCZJJQPUGXZOV"
-    secret_key = "H1osbJRy3903PTMqyOAGD6MIohi4wLXGscnvMEduh10"
-    host_bucket = "%(bucket)s.object.ord1.coreweave.com"
-    bucket = "cloudkit-beta"
-    ipfs_src = "QmXBUkLywjKGTWNDMgxknk6FJEYu9fZaEepv3djmnEqEqD"
-    s3cfg = {
-        "endpoint": endpoint,
-        "accessKey": access_key,
-        "secretKey": secret_key,
-        "hostBucket": host_bucket,   
-        "bucket": bucket
-    }
-    cluster_name = "cloudkit_storage"
-    ipfs_path = "/storage/"
-    local_path = "/storage/cloudkit-models"
-    ipfs_path = "/storage/ipfs/"
-    ten_mins = 600
-    ten_hours = 36000
-    ten_days = 864000
-    never =  100000000
-    role = "worker"
-    cache = {
-        "local": "/storage/cloudkit-models/collection.json",
-        "s3": "s3://cloudkit-beta/collection.json",
-        "ipfs": "QmXBUkLywjKGTWNDMgxknk6FJEYu9fZaEepv3djmnEqEqD",
-        "https": "https://huggingface.co/endomorphosis/cloudkit-collection/resolve/main/collection.json"
-    }
-    timing = {
-        "local_time": ten_mins,
-        "s3_time": ten_hours,
-        "ipfsTime": ten_days,
-        "httpsTime": never,
-    }
-    meta = {
-        "s3cfg": s3cfg,
-        "ipfs_src": ipfs_src,
-        "timing": timing,
-        "cache": cache,
-        "role": role,
-        "cluster_name": cluster_name,
-        "ipfs_path": ipfs_path,
-        "local_path": local_path,
-        "ipfs_path": ipfs_path
-    }
-
-    models_manager = model_manager(None, meta= meta)
-    results = models_manager.test()
-    print(results)
