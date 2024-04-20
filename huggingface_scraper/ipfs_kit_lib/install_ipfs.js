@@ -13,6 +13,9 @@ import { run } from 'shutil';
 import { randomUUID } from 'crypto';
 import crypto from 'crypto';
 
+// TODO: This fails if aria2c is not installed but doesn't fail gracefully and in a way that diagnoses the problem to the user 
+//       Either add a check for aria2c and report to user or add aria2c to the install that is ran before hand
+
 export class InstallIPFS {
     constructor(resources, meta = null) {
         this.resources = resources;
