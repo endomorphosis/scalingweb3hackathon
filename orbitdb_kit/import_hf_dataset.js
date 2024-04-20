@@ -9,27 +9,15 @@ export default async function main(){
 			let parsed_message = JSON.parse(message);
 
 			if(parsed_message.job == 'check_dataset'){
-				check_dataset(ws, message);
+				check_dataset(ws, parsed_message);
 			}
 
-			if(parsed_message.job == 'download_dataset'){
-				download_dataset(ws, message);
+			if(parsed_message.job == 'download'){
+				download_dataset(ws, parsed_message);
 			}
 
-			if(parsed_message.job == 'upload_document'){
-				upload_document(ws, message);
-			}
-
-			if(parsed_message.job == 'upload_key_value'){
-				upload_key_value(ws, message);
-			}
-
-			if(parsed_message.job == 'upload_time_series'){
-				upload_time_series(ws, message);
-			}
-
-			if(parsed_message.job == 'upload_indexed_key_value'){
-				upload_indexed(ws, message);
+			if(parsed_message.job == 'upload'){
+				upload_dataset(ws, parsed_message);
 			}
 		});
 	});
@@ -53,50 +41,47 @@ async function check_dataset(ws, message){
 
 async function download_dataset(ws, message){
 	console.log("downloading dataset");
+
+	// TODO: Fix to be the CID 
+	let dataset_name = message.ipfs_address;
+
+
+	console.log("dataset_name: ", dataset_name);
 	// Download the dataset 
-	ws.send("dataset_downloaded")
+	if (fs.existsSync (`${dataset_name}.json`)){
+		console.log('dataset exists')
+		let data = fs.readFileSync(`${dataset_name}.json`, 'utf8');
+		
+		// Batch data 
+		data
+
+		ws.send(data);
+	}
+	else{
+		console.log('dataset does not exist')
+		ws.send("dataset_not_found");
+	}
 }
 
 
-async function upload_document(ws, message){
-	const parsedMessage = JSON.parse(message);
+async function upload_dataset(ws, message){
+	console.log("uploading dataset");
+
+	// Get dataset_name from message
+	let dataset_name = message.dataset_name;
 	
-	console.log("uploading document");
-	console.log(parsedMessage);
-	
-	fs.appendFileSync('database_test_file.json', JSON.stringify(parsedMessage, null, 2) + '\n');
-	
-	ws.send('OK');
-}
+	// check if there is an existing database for it
+	if (!fs.existsSync(`${dataset_name}.json`)) {
+		// get schema from message
+		console.log("primary_key: ", message.key)
+		// create a new database with the schema 
+		fs.writeFileSync(`${dataset_name}.json`, JSON.stringify({"Database_type": message.database_type}, null, 2) + '\n');
+		fs.appendFileSync(`${dataset_name}.json`, JSON.stringify({"primary_key": message.key}, null, 2) + '\n');
+		fs.appendFileSync(`${dataset_name}.json`, JSON.stringify(message.schema, null, 2) + '\n'); 
+	}
 
-
-async function upload_key_value(ws, message){
-	const parsedMessage = JSON.parse(message);
-	
-	console.log("uploading key value");
-	console.log(parsedMessage);
-	
-	fs.appendFileSync('database_test_file.json', JSON.stringify(parsedMessage, null, 2) + '\n');
-	
-	ws.send('OK');
-}
-
-
-async function upload_time_series(ws, message){
-	console.log("uploading time series");
-	const parsedMessage = JSON.parse(message);
-
-	fs.appendFileSync('database_test_file.json', JSON.stringify(parsedMessage, null, 2) + '\n');
-	
-	ws.send('OK');
-}
-
-
-async function upload_indexed(ws, message){
-	console.log("uploading indexed");
-	const parsedMessage = JSON.parse(message);
-
-	fs.appendFileSync('database_test_file.json', JSON.stringify(parsedMessage, null, 2) + '\n');
+	// for each query in the message
+	fs.appendFileSync(`${dataset_name}.json`, JSON.stringify(message.value, null, 2) + '\n');	
 	
 	ws.send('OK');
 }
