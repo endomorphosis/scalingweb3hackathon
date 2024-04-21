@@ -1,3 +1,7 @@
+export function generate_readme_dataset(){
+    let readme = "# Dataset\n"
+    return readme
+}
 
 export function generate_readme_diffusion(){
     let readme = "# Diffusion Model\n"
@@ -29,6 +33,15 @@ export function generate_readme_faster_whisper(){
     return readme
 }
 
+export function generate_readme_hf_lm(){
+    let readme = "# HF LM Model\n"
+    return readme
+}
+
+export function generate_readme_hf_t5(){
+    let readme = "# HF T5 Model\n"
+    return readme
+}
 
 export function generate_readme(generate, manifest){
     if(generate.skill == "diffusion"){
@@ -41,7 +54,10 @@ export function generate_readme(generate, manifest){
         return generate_readme_hf_transformers()
     }
     if(generate.skill == "hf_t5"){
-        return generate_readme_hf_transformers()
+        return generate_readme_hf_t5()
+    }
+    if(generate.skill == "hf_lm"){
+        return generate_readme_hf_lm()
     }
     if(generate.skill == "knn"){
         return generate_readme_knn()
@@ -51,5 +67,11 @@ export function generate_readme(generate, manifest){
     }
     if(generate.skill == "hf_faster_whisper"){
         return generate_readme_faster_whisper()
+    }
+    if(generate.skill == "dataset"){
+        return generate_readme_dataset()
+    }
+    else{
+        return "Invalid skill for readme generation"
     }
 }

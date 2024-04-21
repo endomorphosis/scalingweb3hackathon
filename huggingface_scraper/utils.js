@@ -486,7 +486,11 @@ export function generate_metadata_test(generate){
 
 export function generate_hwrequirements_template(generate){
     let results = {}
-    results["minFlops"] = parseFloat(0)
+    results["minFlops"] = {
+        "fp8": 0,
+        "fp16": 0,
+        "fp32": 0
+    }
     results["flopsPerUnit"] = parseFloat(0)
     results["minSpeed"] = parseFloat(0)
     results["gpuCount"] = []
