@@ -1,16 +1,31 @@
-# Scaling Web3 Hackathon
-https://www.encode.club/scaling-web3-hackathon
+# Encode Club Scaling Web3 Hackathon Presents
 
-IPFS Huggingface Bridge
+IPFS Huggingface Bridge:
 
-for transformers.js visit:
-https://github.com/endomorphosis/ipfs_transformers_js
+for transformers python library visit:
+https://github.com/endomorphosis/ipfs_transformers/
 
-for huggingface datasets python library visit
-https://github.com/endomorphosis/ipfs_datasets
+for transformers js client visit:                          
+https://github.com/endomorphosis/ipfs_transformers_js/
 
-for orbitdbkit nodejs library visit
-https://github.com/endomorphosis/orbitdb-benchmark/
+for datasets python library visit:                          
+https://github.com/endomorphosis/ipfs_datasets/
+
+for orbitdb_kit nodejs library visit:
+https://github.com/endomorphosis/orbitdb_kit/
+
+for Faiss KNN index python library visit:
+https://github.com/endomorphosis/ipfs_faiss/
+
+for python model manager library visit: 
+https://github.com/endomorphosis/ipfs_model_manager/
+
+for nodejs model manager library visit: 
+https://github.com/endomorphosis/ipfs_model_manager_js/
+
+for nodejs ipfs huggingface scraper with pinning services visit:
+https://github.com/endomorphosis/ipfs_huggingface_scraper/
+
 
 Author - Benjamin Barber
 QA - Kevin De Haan
@@ -18,6 +33,7 @@ QA - Kevin De Haan
 # About
 
 This is a model manager and wrapper for huggingface, looks up a index of models from an collection of models, and will download a model from either https/s3/ipfs, depending on which source is the fastest.
+
 
 # How to use
 ~~~shell
