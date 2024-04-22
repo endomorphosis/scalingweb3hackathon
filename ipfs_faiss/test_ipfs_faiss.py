@@ -1,5 +1,5 @@
 import datasets
-from datasets import Dataset
+from datasets import load_dataset
 from datasets import FaissIndex
 from ipfs_datasets import auto_download_dataset , ipfs_dataset
 from ipfs_faiss import auto_download_faiss_index, ipfs_load_faiss_index
