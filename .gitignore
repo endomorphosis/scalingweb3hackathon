@@ -13,3 +13,5 @@ ipfs_transformers.egg-info
 config/config.toml
 config.toml
 **/config.toml
+yarn.lock
+*.egg-info

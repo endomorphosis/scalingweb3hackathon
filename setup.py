@@ -1,15 +1,14 @@
 from setuptools import setup
 
 setup(
-	name='ipfs-transformers',
+	name='ipfs-datasets',
 	version='0.0.1',
 	packages=[
-		'ipfs_transformers',
-		'ipfs_transformers.ipfs_kit_lib',
-
+		'ipfs_datasets',
 	],
 	install_requires=[
-		'transformers',
+        'ipfs_kit@git+https://github.com/endomorphosis/ipfs_kit.git',
+		'datasets',
 		'urllib3',
 		'requests',
 		'boto3',

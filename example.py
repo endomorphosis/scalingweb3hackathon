@@ -1,12 +1,15 @@
-from transformers import AutoModel
-from ipfs_transformers import AutoModel
+import sys
+import os
 
-model = AutoModel.from_auto_download("bge-small-en-v1.5")  
-print(dir(model))
-model = AutoModel.from_ipfs("QmYRMaBBuWC8pPBvhi7U987P6YFexvjmiwhMHqEy7HvuWJ")
-print(dir(model))
+parent_dir = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(parent_dir)
 
+from datasets import load_dataset
+from ipfs_datasets import load_dataset
 
+# Test loading a dataset 
+dataset = load_dataset.from_auto_download("cifar10")
+print(dir(dataset))
 ## OPTIONAL S3 Caching ##
 
 #model = T5Model.from_auto_download(
