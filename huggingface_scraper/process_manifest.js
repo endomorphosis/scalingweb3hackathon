@@ -82,9 +82,6 @@ export class process_manifest
         generate.hf_creds = hf_creds
         generate.mysql_creds = mysql_creds
 
-        console.log("local_model_path: ", local_model_path)
-        console.log("process.env.local_model_path: ", process.env.local_model_path)
-
         if(manifest.metadata.quantization != undefined && !manifest.id.includes(manifest.metadata.quantization)){
             build_path = path.join("/tmp/build/", manifest.id + "-" + manifest.metadata.quantization) 
             generate.build_path = path.join("/tmp/build/", manifest.id + "-" + manifest.metadata.quantization)
@@ -118,8 +115,11 @@ export class process_manifest
         delete manifest["s3_creds"];
         delete manifest["hf_creds"];
         delete manifest["mysql_creds"];
+        delete generate["s3_creds"];
+        delete generate["hf_creds"];
+        delete generate["mysql_creds"];
         console.log("process_prompted_manifest")
-        console.log("generate: ", generate)
+        //console.log("generate: ", generate)
         manifest.folderData = generate.folderData
         //delete this.manifest.skill
         fs.writeFileSync(path.join(build_path, "manifest.json"), JSON.stringify(manifest))
@@ -613,6 +613,9 @@ export function update_collection_ipfs(collection, this_collection_path){
     if(this_collection_path == undefined){
         this_collection_path = collection_path
     }
+    console.log("function update_collection_ipfs")
+    console.log("this_collection_path: ", this_collection_path)
+
     let command_1 = "ipfs add -r " + this_collection_path 
     let results_1
     try{
@@ -660,6 +663,7 @@ export function update_collection_ipfs(collection, this_collection_path){
 }
 
 export function update_collection_mysql(collection, this_collection_path, this_mysql_creds) {
+    return true
     if (this_mysql_creds == undefined) {
         if (Object.keys(process.env).includes("mysql_creds")) {
             this_mysql_creds = JSON.parse(process.env.mysql_creds);
@@ -854,7 +858,7 @@ export function export_cache_locations( manifest, generate, file_dict){
         let this_size = file_dict[this_file].size
         let this_url
         let s3_creds = JSON.parse(process.env.s3_creds)
-        console.log("s3_creds: ", s3_creds)
+        //console.log("s3_creds: ", s3_creds)
         let s3_bucket = JSON.parse(process.env.s3_creds)["bucket"]
 
         if (generate.converted == true ){
@@ -1009,9 +1013,20 @@ export function upload_manifest_files_hf(manifest,  generate, this_hf_creds){
 }
 
 
-export function upload_manifest_files_ipfs(manifest, generate, ipfsCluster){
-    let ipfs = {}
+export function upload_manifest_files_ipfs(manifest, generate, ipfsCluster, this_collection_path = undefined){
+    
     if(ipfsCluster.active_models.includes(manifest.id) == false || Object.keys(manifest.cache.ipfs) == 0){
+        if (this_collection_path != undefined){
+            //console.log("this_collection_path: ", this_collection_path)
+        }
+        if(Object.keys(generate).includes("build_path") && generate.build_path != undefined){
+           // console.log("generate.build_path: ", generate.build_path)
+            //console.log(generate.build_path)
+        }
+        else{
+            throw "generate.build_path is missing"
+        }
+
         let command1 = "cd " + generate.build_path + " ; ipfs add -r " + generate.build_path + "/ --progress=false"
         console.log("command1: " + command1)
         let results1
@@ -1094,7 +1109,7 @@ export function upload_manifest_files(manifest, generate, local_path, ipfsCluste
     }
     let test
     try{
-        console.log("ipfs")
+        //console.log("ipfs")
         let ipfs_upload = upload_manifest_files_ipfs(manifest, generate, ipfsCluster)
     }
     catch(error){
@@ -1146,6 +1161,10 @@ export function upload_manifest_files(manifest, generate, local_path, ipfsCluste
 export function import_hf(generate, manifest, build_path){
     console.log("import_hf")
     console.log("generate: ")
+    let print_generate = generate
+    delete print_generate["s3_creds"]
+    delete print_generate["hf_creds"]
+    delete print_generate["mysql_creds"]
     console.log(generate)
 
     let source_path = generate.source
@@ -1176,8 +1195,20 @@ export function import_hf(generate, manifest, build_path){
         tree_source = source_path + "tree/main"
     }
     let hf_model_uuid = canonincal_source.replace("https://huggingface.co/", "")
+
+    console.log("source_path: " + source_path)
+    console.log("dest_path: " + dest_path)
+    //console.log("cannoical_source: " + canonincal_source)
+    console.log("hf_model_uuid")
+    console.log(hf_model_uuid)
+    console.log("tree_source")
+    console.log(tree_source)
+    console.log("canonincal_source")
+    console.log(canonincal_source)
     let hf_username = hf_model_uuid.split("/")[0]
-    let hf_model_name = hf_model_uuid.split("/")[1]
+    let hf_model_name = hf_model_uuid.split("/")[hf_model_uuid.split("/").length - 1]
+    console.log('hf_model_name')
+    console.log(hf_model_name)
 
     let formats = [hf_model_name, generate.id ]
     if(hf_model_name != undefined){
@@ -1334,7 +1365,7 @@ export function import_hf(generate, manifest, build_path){
         }
         manifest.metadata.folderData = folder_data(generate, manifest , build_path)
         console.log("tree_objects: " + JSON.stringify(tree_objects))
-        console.log(manifest.metadata.folderData)
+        //console.log(manifest.metadata.folderData)
         let command_4 = "rm -rf " + clone_path
         console.log("command_4: " + command_4)  
         let results_4
@@ -1350,11 +1381,14 @@ export function import_hf(generate, manifest, build_path){
         }
     }
     else if(generate.format == "llama_fp32" || generate.format == "llama_fp16" || generate.format == "hf" || generate.format == "fp16" || generate.format == "fp32"){
-        let command_1 = 'git lfs install ; git clone --depth 1 '
+        let command_1 = 'git lfs install ; git clone --depth 2 '
         let command_2 = 'git config --global --add safe.directory \'*\' ; git ls-files'
-        let build_path = "/tmp/build/" + hf_model_name 
+        let build_path = path.join("/tmp/build/" , hf_model_name) 
         //generate.build_path = build_path
-
+        console.log("command2")
+        console.log(command_2)
+        console.log("build_path")
+        console.log(build_path)
         if (fs.existsSync(build_path)){
             child_process.execSync("rm -rf " + build_path)
         }

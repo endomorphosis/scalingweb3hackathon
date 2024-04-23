@@ -56,18 +56,43 @@ export default function dataset_calc(){
     let size = 0
     let compression_type = "none"
     let folderData = []
+    let this_source
     if (format == "parquet"){
         let samples = open_ended_question("Enter the number of samples: ")
         let compression = ["snappy", "gzip", "brotli", "lz4", "zstd", "none"]
         compression_type = multiple_choice_question("Select a compression type: ", compression)
     }
     else{
+        
         let source_path = path.resolve(source)
+
+        let source_split = source.split("/")
+        if (source_split.length > 1){
+            if(source_split[0].includes("https")){
+                if (source_split[2].includes("huggingface.co")){
+                    source_path = source_split[5]
+                    console.log("this_source: ", this_source)
+                }
+            }
+        }
+
+        source_path = path.resolve(source_path)
+
         folderData = walkSync(source_path)
         console.log("Number of samples: " + folderData.length)
         samples = samples.length
-    }        
-    size = execSync("du -sh " + source).toString()
+    }
+
+    let source_split = source.split("/")
+    if (source_split.length > 1){
+        if(source_split[0].includes("https")){
+            if (source_split[2].includes("huggingface.co")){
+                this_source = source_split[5]
+                console.log("this_source: ", this_source)
+            }
+        }
+    }
+    size = execSync("du -sh " + this_source.toString()).toString()
 
     console.log("Size: ")
     let count = parseInt(size.split("\n")[0].split("\t")[0].split(" ")[0].replace(/\D/g,''))
@@ -92,7 +117,7 @@ export default function dataset_calc(){
     generate.location = location
     generate.folderData = folderData
     generate.source = source
-    generate.format = format
+    generate.format = "hf"
     generate.samples = samples
     generate.size = size    
     let results = dataset_generate(generate)

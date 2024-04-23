@@ -197,7 +197,7 @@ export function generate_md5(source, this_path){
     let digest = ''
     if(fs.existsSync(md5_path)){
         if(fs.statSync(md5_path).isDirectory()){
-            console.log()
+            //console.log()
         }
         else if (fs.statSync(md5_path).isFile())
         {

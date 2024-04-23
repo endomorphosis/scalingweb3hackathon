@@ -8,6 +8,9 @@ import time
 test_folder = os.path.dirname(os.path.dirname(__file__)) + "/test"
 sys.path.append(test_folder)
 import test_fio
+import subprocess
+import tempfile
+import os
 
 ipfs_service = """
 [Unit]
@@ -209,17 +212,17 @@ class install_ipfs:
 				command = "tar -xvzf " + this_tempfile.name + " -C /tmp"
 				results = subprocess.check_output(command, shell=True)
 				results = results.decode()
-				command = "cd /tmp/ipfs-cluster-follow ; sudo mv ipfs-cluster-follow /usr/local/bin/ipfs-cluster-follow"
-				results = subprocess.check_output(command, shell=True)
-				results = results.decode()
 				command = "ipfs-cluster-follow --version"
 				results = subprocess.check_output(command, shell=True)
 				results = results.decode()
-				
-				if os.userInfo().username == "root":
+
+				if os.getlogin() == "root":
 					with open("/etc/systemd/system/ipfs-cluster-follow.service", "w") as file:
 						file.write(ipfs_cluster_follow)
 				else:
+					#NOTE: Clean this up and make better logging or drop the error all together
+					print('You need to be root to write to /etc/systemd/system/ipfs-cluster-follow.service')
+
 					#NOTE: Clean this up and make better logging or drop the error all together
 					print('You need to be root to write to /etc/systemd/system/ipfs-cluster-follow.service')
 				
@@ -701,8 +704,8 @@ class install_ipfs:
 			finally:
 				pass
 
-			if os.userInfo().username == "root":
-				ipfs_service_text = ipfs_service.replace("ExecStart=","ExecStart= bash -c \"export IPFS_PATH="+ ipfs_path + " && ")
+			if os.getuid() == 0:
+				ipfs_service_text = ipfs_service.replace("ExecStart=", "ExecStart= bash -c \"export IPFS_PATH="+ ipfs_path + " && ")
 				with open("/etc/systemd/system/ipfs.service", "w") as file:
 					file.write(ipfs_service_text)
 
@@ -1080,12 +1083,12 @@ class install_ipfs:
 
 if __name__ == "__main__":
 	meta = {
-		"role":"worker",
+		"role":"master",
 		"cluster_name":"cloudkit_storage",
 		"cluster_location":"/ip4/167.99.96.231/tcp/9096/p2p/12D3KooWKw9XCkdfnf8CkAseryCgS3VVoGQ6HUAkY91Qc6Fvn4yv",
 		#"cluster_location": "/ip4/167.99.96.231/udp/4001/quic-v1/p2p/12D3KooWS9pEXDb2FEsDv9TH4HicZgwhZtthHtSdSfyKKDnkDu8D",
 		"config":None,
-		"ipfs_path":"/home/kensix/.cache/ipfs",
+		"ipfs_path":"/home/barberb/.cache/ipfs",
 	}
 	install = install_ipfs(None, meta=meta) 
 	# results = install.test_uninstall()
