@@ -30,7 +30,7 @@ export function findConfig(){
 		: undefined
 }
 
-export function loadConfig(self, configPath, overrides = None){
+export function loadConfig(configPath, overrides){
 	return overrideToml(
 		baseConfig,
 		parseToml(fs.readFileSync(configPath), 'camelCase'),

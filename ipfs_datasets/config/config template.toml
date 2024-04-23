@@ -80,7 +80,31 @@ s3_host_bucket = ""
 
 [[LIGHTHOUSE]]
 
+<<<<<<< HEAD:config/config.toml
+[LIGHTHOUSE]
+ipfs_endpoint = "https://api.lighthouse.storage/api/"
+key = "07131fb6.4c17a45d4a9c492888324964349bc998"
+size = "1000000"
+encryption = "false"
+permanent = "false"
+speed = ""
+=======
 [[WEB3STORAGE]]
+>>>>>>> fd58eb239c1e9d7d63bc9d2e574cfce3dce63834:ipfs_datasets/config/config template.toml
 
 [[FILEBASE]]
 
+<<<<<<< HEAD:config/config.toml
+[FILEBASE]
+ipfs_endpoint = "https://api.filebase.io/v1/ipfs"
+bucket = "hallucinate"
+key = "M0NCNTQ5RTRFQkY4NjZGMzJCQTI6VjBrbWZlclIwMGpudW5sNWJCRXBDS241RVVick5tSEF2MzBGSklNRjpoYWxsdWNpbmF0ZQ=="
+gateway = "https://ipfs.filebase.io/ipfs/%(cid)"
+s3_endpoint = "https://s3.filebase.com"
+price = "0.08"
+xfer = "0.015"
+max_pins = "1000"
+size = "5000000"
+speed = ""
+=======
+>>>>>>> fd58eb239c1e9d7d63bc9d2e574cfce3dce63834:ipfs_datasets/config/config template.toml

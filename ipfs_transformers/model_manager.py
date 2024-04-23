@@ -5,6 +5,7 @@ import json
 import pathlib
 import time
 import tempfile
+import config.config
 from s3_kit import s3_kit
 from ipfs_kit import ipfs_kit
 from ipfs_kit_lib.install_ipfs import install_ipfs as install_ipfs
@@ -19,6 +20,7 @@ parent_dir = os.path.dirname(os.path.dirname(__file__))
 ipfs_lib_dir = os.path.join(parent_dir, "ipfs_kit_lib")
 sys.path.append(ipfs_lib_dir)
 sys.path.append(parent_dir)
+from config import config
 
 class model_manager:
     def __init__(self, resources=None, meta=None):
@@ -39,6 +41,7 @@ class model_manager:
         self.this_model = None
         self.this_model_name = None
         self.s3cfg = None
+        
         if meta is not None and type (meta) == dict:
             if "s3cfg" in meta:
                 self.s3cfg = meta["s3cfg"]
@@ -84,7 +87,7 @@ class model_manager:
                 "cluster_name": self.cluster_name,
                 "cache": self.cache,
             }
-
+        self.config = None
         homedir = os.path.expanduser("~")
         homedir_files = os.listdir(homedir)
         self.test_fio = test_fio.test_fio(None)
@@ -177,6 +180,7 @@ class model_manager:
             return self.test(**kwargs)
 
     def load_collection(self, **kwargs):
+        self.config = config.config('../config/config.toml')
         try:
             self.https_collection = self.download_https('https://huggingface.co/endomorphosis/cloudkit-collection/resolve/main/collection.json', "/tmp/")
             with open(self.https_collection, 'r') as f:
@@ -386,6 +390,31 @@ class model_manager:
         s3_timestamp = None
         local_timestamp = None
         https_timestamp = None
+        collection_cache = None
+        if "collection_cache" in kwargs:
+            collection_cache = kwargs["collection_cache"]
+        elif "collection_cache" in dir(self):
+            collection_cache = self.collection_cache
+        if collection_cache == None:
+            if "config" in dir(self):
+                if "baseConfig" in dir(self.config) and self.config.baseConfig is not None:
+                    collection_cache = self.config.baseConfig["PATH"]["COLLECTION"]
+                    self.collection_cache = collection_cache
+            
+        if "collection_cache" not in dir(self):
+            this_dir = os.path.dirname(os.path.realpath(__file__))
+            this_path = os.path.join(this_dir, "config")
+            this_path = os.path.join(this_path, "config.toml")
+            load_this_config = config()
+            this_config = load_this_config.loadConfig(this_path)
+            self.config = this_config
+            collection_cache = None
+            if "baseConfig" in dir(this_config) and this_config.baseConfig is not None:
+                collection_cache = this_config.baseConfig["PATH"]["COLLECTION"]
+            if "baseConfig" in dir(self.config) and self.config.baseConfig is not None:
+                collection_cache = self.config.baseConfig["PATH"]["COLLECTION"]
+            if "collection_cache" not in dir(self):
+                self.collection_cache = collection_cache
 
         if type(self.ipfs_collection) == dict and "cache" in list(self.ipfs_collection.keys()):
             if "timestamp" in self.ipfs_collection["cache"]:
@@ -396,22 +425,29 @@ class model_manager:
             if "timestamp" in self.s3_collection["cache"]:
                 s3_timestamp = self.s3_collection["cache"]["timestamp"]
             if s3_timestamp is None:
-                s3_timestamp = self.s3_kit.s3_ls_file(self.collection_cache["s3"].split("/")[-1], self.collection_cache["s3"].split("/")[-2])
-                key = list(s3_timestamp.keys())[0]
-                s3_timestamp = s3_timestamp[key]["last_modified"]
-                pass
+                if "collection_cache" in dir(self):
+                    s3_timestamp = self.s3_kit.s3_ls_file(self.collection_cache["s3"].split("/")[-1], self.collection_cache["s3"].split("/")[-2])
+                    key = list(s3_timestamp.keys())[0]
+                    s3_timestamp = s3_timestamp[key]["last_modified"]
+                    pass
         if type(self.local_collection) == dict and "cache" in list(self.local_collection.keys()):
             if "timestamp" in self.local_collection["cache"]:
                 local_timestamp = self.local_collection["cache"]["timestamp"]
             if local_timestamp is None:
-                local_timestamp = os.path.getmtime(self.collection_cache["local"])
+                if "collection_cache" in dir(self) and self.collection_cache is not None:
+                    local_timestamp = os.path.getmtime(self.collection_cache["local"])
                 pass
         if type(self.https_collection) == dict and "cache" in list(self.https_collection.keys()):
             if "timestamp" in self.https_collection["cache"]:
                 https_timestamp = self.https_collection["cache"]["timestamp"]
             if https_timestamp is None:
                 https_timestamp = datetime.datetime.now().timestamp()
-
+        this_dir = os.path.dirname(os.path.realpath(__file__))
+        this_path = os.path.join(this_dir, "config")
+        this_path = os.path.join(this_path, "config.toml")
+        load_this_config = config()
+        this_config = load_this_config.loadConfig(this_path)
+        self.config = this_config
         timestamps = {
             "ipfs": ipfs_timestamp,
             "s3": s3_timestamp,
@@ -455,7 +491,7 @@ class model_manager:
         }
 
         if all(value is None for value in model_data.values()):
-            raise Exception("Model not found")
+            raise Exception("Model not found in the collection")
         
         this_model = None
 
