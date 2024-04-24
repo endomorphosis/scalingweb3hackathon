@@ -56,6 +56,25 @@ model = AutoModel.from_auto_download("bge-small-en-v1.5")  # 1.5GB
 #        "access_key": "",
 #    }
 #)
+import gzip as Gzip
+import numpy as np
+
+
+def gzip_classify(test_set, training_set, k=5):
+    for ( x1 , _ ) in test_set :
+        Cx1 = len( Gzip.compress ( x1.encode ()))
+        distance_from_x1 = []
+        for ( x2 , _ ) in training_set :
+            Cx2 = len(Gzip.compress(x2.encode()))
+            x1x2 = " ". join ([ x1 , x2 ])
+        Cx1x2 = len(Gzip.compress(x1x2.encode()))
+        ncd = ( Cx1x2 - min( Cx1 , Cx2 ) ) / max( Cx1 , Cx2 )
+        distance_from_x1.append( ncd )
+    sorted_idx = np.argsort(np .array(distance_from_x1 ))
+    top_k_class = training_set [ sorted_idx [: k ] , 1]
+    predict_class = max(set( top_k_class ), key = top_k_class.count())
+    print( f"Predicted class: { predict_class }")
+
 
 # Initialize a Faiss index
 index = FaissIndex(dimension=768)
