@@ -56,6 +56,7 @@ model = AutoModel.from_auto_download("bge-small-en-v1.5")  # 1.5GB
 #        "access_key": "",
 #    }
 #)
+
 import gzip as Gzip
 import numpy as np
 
